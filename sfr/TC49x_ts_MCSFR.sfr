@@ -1,0 +1,3137 @@
+/*
+################################################################################
+#                                                                              #
+#    TC49x / BR_XETK-S3                          |   ETAS GmbH                 #
+#    ETK INCA Integration Example                |   Stuttgart Feuerbach       #
+#    For Demonstration Purpose Only              |   All rights reserved       #
+#                                                |   Alle Rechte vorbehalten   #
+#                                                                              #
+################################################################################
+*/
+
+/******************************************************************************/
+/* Copyright and Legal Disclaimer:                                            */
+/* This Code example was provided by ETAS GmbH, Stuttgart                     */
+/*                                                                            */
+/* ETAS will not be held reliable for any usage of this code,                 */
+/* this code is provided as example code only, and not tested and released    */
+/* for production code.                                                       */
+/* ETAS will not guarantee any functional part of this code in any            */
+/* environment together with any ETAS tools. ETAS will not guarantee that     */
+/* this code works together with any future versions of ETAS tools.           */
+/*                                                                            */
+/* ETAS will not guarantee that this code is free of rights of third parties. */
+/*                                                                            */
+/* You are hereby granted the right to use his code as a example for your own */
+/* ECU implementation together with ETAS Tools. No licenses are granted by    */
+/* implication or otherwise under any patents or trademarks of ETAS GmbH.     */
+/* This software is provided on an "AS IS" basis and without warranty.        */
+/*                                                                            */
+/* You are not allowed to give these code to third parties without            */
+/* the written permission of ETAS GmbH.                                       */
+/*                                                                            */
+/* To the maximum extent permitted by applicable law,                         */
+/* ETAS GmbH DISCLAIMS ALL WARRANTIES WHETHER EXPRESS OR IMPLIED,             */
+/* INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A           */
+/* PARTICULAR PURPOSE AND ANY WARRANTY AGAINST INFRINGEMENT WITH REGARD       */
+/* TO THE SOFTWARE (INCLUDING ANY MODIFIED VERSIONS THEREOF)                  */
+/* AND ANY ACCOMPANYING WRITTEN MATERIALS.                                    */
+/*                                                                            */
+/*                                                                            */
+/* To the maximum extent permitted by applicable law,                         */
+/* IN NO EVENT SHALL ETAS BE LIABLE FOR ANY                                   */
+/* DAMAGES WHATSOEVER (INCLUDING WITHOUT LIMITATION, DAMAGES FOR LOSS OF      */
+/* BUSINESS PROFITS, BUSINESS INTERRUPTION, LOSS OF BUSINESS INFORMATION,     */
+/* OR OTHER PECUNIARY LOSS)                                                   */
+/* ARISING OF THE USE OR INABILITY TO USE THE SOFTWARE.                       */
+/*                                                                            */
+/*                                                                            */
+/* ETAS GmbH assumes no responsibility for the maintenance                    */
+/* and support of this software                                               */
+/*                                                                            */
+/*                                                                            */
+/*  COPYRIGHT (c) ETAS GmbH 2016-2023                                         */
+/*  All Rights Reserved                                                       */
+/******************************************************************************/
+
+#ifndef TC49X_SFR_FILE
+#define TC49X_SFR_FILE
+
+// todo srg TC4xx, check definitions
+#define PMA0  0x8100 /* Physical Memory Attributes */
+#define DCON0 0x9040 /* Data Memory Control Register */
+#define PCON0 0x920c /* Program Control 0 */
+#define PCON1 0x9204 /* Program Control 1 */
+#define PSW   0xFE04 /* Specific Program Status Word */
+#define PCXI  0xFE00 /* Specific Previous Context information Register */
+#define BTV   0xFE24 /* Specific Base Trap Vector Table Pointer */
+#define BIV   0xFE20 /* Specific Base Interrupt Vector Table Pointer */
+#define ISP   0xFE28 /* Specific Interrupt Stack Pointer */
+#define LCX   0xFE3C /* Specific Free CSA List Limit Pointer */
+#define FCX   0xFE38 /* Specific Free CSA List Head Pointer */
+
+
+/* from Aurix TC49x user manual V0.73, TC18, physical addresses of any CPU CSFR or SFR or FSFR and ff */
+#define WDT_BASE     0xF0000000
+#define SCU_BASE     0xF0024000
+#define SMM_BASE     0xF0060000
+#define FSFR_BASE    0xF8400000
+#define SFR_BASE     0xF8800000
+#define OVERLAY_BASE 0x0000FB00
+#define UCB0_BASE    0xAE400000
+#define ASCLIN0_BASE 0xF02C0000
+#define CCU_BASE     0xF0064000
+#define CBS_BASE     0xFA180000
+#define SRC_BASE     0xF0032000
+
+#define CORE(n)        ((uint32)(n) << 18)
+#define OSEL           0x0
+#define RABR(i)        ((uint32)0x10 + (i)*12)
+#define OTAR(i)        ((uint32)0x14 + (i)*12)
+#define OMASK(i)       ((uint32)0x18 + (i)*12)
+#define PyFLASHCON0(y) ((uint32)0x200 + (y)*8)
+#define PyFLASHCON1(y) ((uint32)0x208 + (y)*8)
+#define STM_CPU0_SR(n) ((uint32)0x20 + (n)*4)
+#define STM_CPU1_SR(n) ((uint32)0x20 + 0x40 + (n)*4)
+#define STM_CPU2_SR(n) ((uint32)0x20 + (2 * 0x40) + (n)*4)
+#define STM_CPU3_SR(n) ((uint32)0x20 + (3 * 0x40) + (n)*4)
+#define STM_CPU4_SR(n) ((uint32)0x20 + (4 * 0x40) + (n)*4)
+#define STM_CPU5_SR(n) ((uint32)0x20 + (5 * 0x40) + (n)*4)
+
+#define P00_BASE                    0xF003A000
+#define P10_BASE                    0xF003C800
+#define P13_BASE                    0xF003D400
+#define P14_BASE                    0xF003D800
+#define P21_BASE                    0xF003F400
+#define P23_BASE                    0xF003FC00
+#define P30_BASE                    0xF0041800
+#define P32_BASE                    0xF0042000
+#define P33_BASE                    0xF0042400
+#define PxxPADCFGp_DRVCFG_OFFSET(p) ((uint32)0x304 + (0x10 * (p)))
+
+
+/* CBS_OSTATE */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int OEN    : 1; /* OCDS Enabled Flag */
+    unsigned int OC0    : 1; /* OCDS Control Bits System Bus Domain */
+    unsigned int OC1    : 1; /* OCDS Control Bits System Bus Domain */
+    unsigned int OC2    : 1; /* OCDS Control Bits System Bus Domain */
+    unsigned int ENIDIS : 1; /* OCDS ENDINIT Protection Override */
+    unsigned int EECTRC : 1; /* On Chip Trace Enable */
+    unsigned int EECDIS : 1; /* Emulation Logic Disable */
+    unsigned int WDTSUS : 1; /* Control of Watchdog Timer (WDT) Suspension */
+    unsigned int HARR   : 1; /* Halt after Reset Request */
+    unsigned int OJC1   : 1; /* OCDS Control Bits IOClient Domain */
+    unsigned int OJC2   : 1; /* OCDS Control Bits IOClient Domain */
+    unsigned int OJC3   : 1; /* OCDS Control Bits IOClient Domain */
+    unsigned int RSTCL0 : 1; /* OCDS System Reset Request */
+    unsigned int RSTCL1 : 1; /* OCDS Debug Reset Request */
+    unsigned int OJC6   : 1; /* OCDS Control Bits IOClient Domain */
+    unsigned int RSTCL3 : 1; /* OCDS Application Reset Request */
+    unsigned int IF_LCK : 1; /* Interface Locked Indication */
+    unsigned int AUT_OK : 1; /* Authorization OK Indication */
+    unsigned int STABLE : 1; /* Application ResetIndication */
+    unsigned int OCO    : 1; /* OCDS debug resource Clock On indication */
+    unsigned int        : 12;
+  } B;
+  int I;
+  unsigned int U;
+} CBS_OSTATE_type;
+#define CBS_OSTATE (*(CBS_OSTATE_type*)(CBS_BASE + 0x06C)) /* OSCUStatus Register */
+
+/* CBS_OEC */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int PAT      : 8; /* OCDS Enabling Pattern */
+    unsigned int DS       : 1; /* Disable OCDS */
+    unsigned int OCO      : 1; /* OCDS Clock Off */
+    unsigned int          : 6;
+    unsigned int IF_LCK_P : 1; /* IF_LCK Write Protection */
+    unsigned int IF_LCK   : 1; /* Set/Clear Interface Locked Indication */
+    unsigned int AUT_OK_P : 1; /* AUT_OK Write Protection */
+    unsigned int AUT_OK   : 1; /* Set/Clear the Authorization OK Indication */
+    unsigned int          : 12;
+  } B;
+  int I;
+  unsigned int U;
+} CBS_OEC_type;
+#define CBS_OEC (*(CBS_OEC_type*)(CBS_BASE + 0x068)) /* OCDS Enable Control Register */
+
+/* CBS_OCNTRL */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int OC0_P    : 1; /* OC0 Write Protection */
+    unsigned int OC0      : 1; /* Set/Clear OCDS Control Bits Bus Domain */
+    unsigned int OC1_P    : 1; /* OC1 Write Protection */
+    unsigned int OC1      : 1; /* Set/Clear OCDS Control Bits Bus Domain */
+    unsigned int OC2_P    : 1; /* OC2 Write Protection */
+    unsigned int OC2      : 1; /* Set/Clear OCDS Control Bits Bus Domain */
+    unsigned int OC3_P    : 1; /* OC3 Write Protection */
+    unsigned int OC3      : 1; /* Set/Clear OCDS Control Bits Bus Domain */
+    unsigned int OC4_P    : 1; /* OC4 Write Protection */
+    unsigned int OC4      : 1; /* Set/Clear OCDS Control Bits Bus Domain */
+    unsigned int OC5_P    : 1; /* OC5 Write Protection */
+    unsigned int OC5      : 1; /* Set/Clear OCDS Control Bits Bus Domain */
+    unsigned int WDTSUS_P : 1; /* WDTSUS Write Protection */
+    unsigned int WDTSUS   : 1; /* Set/Clear Watchdog Timer Suspension Control */
+    unsigned int STABLE_P : 1; /* STABLE Write Protection */
+    unsigned int STABLE   : 1; /* InitializeApplication ResetIndication */
+    unsigned int OJC0_P   : 1; /* OJC0 Write Protection */
+    unsigned int OJC0     : 1; /* Set/Clear OCDS Control Bits IOClient Domain */
+    unsigned int OJC1_P   : 1; /* OJC1 Write Protection */
+    unsigned int OJC1     : 1; /* Set/Clear OCDS Control Bits IOClient Domain */
+    unsigned int OJC2_P   : 1; /* OJC2 Write Protection */
+    unsigned int OJC2     : 1; /* Set/Clear OCDS Control Bits IOClient Domain */
+    unsigned int OJC3_P   : 1; /* OJC3 Write Protection */
+    unsigned int OJC3     : 1; /* Set/Clear OCDS Control Bits IOClient Domain */
+    unsigned int OJC4_P   : 1; /* OJC4 Write Protection */
+    unsigned int OJC4     : 1; /* Set/Clear OCDS Control Bits IOClient Domain */
+    unsigned int OJC5_P   : 1; /* OJC5 Write Protection */
+    unsigned int OJC5     : 1; /* Set/Clear OCDS Control Bits IOClient Domain */
+    unsigned int OJC6_P   : 1; /* OJC6 Write Protection */
+    unsigned int OJC6     : 1; /* Set/Clear OCDS Control Bits IOClient Domain */
+    unsigned int OJC7_P   : 1; /* OJC7 Write Protection */
+    unsigned int OJC7     : 1; /* Set/Clear OCDS Control Bits IOClient Domain */
+  } B;
+  int I;
+  unsigned int U;
+} CBS_OCNTRL_type;
+#define CBS_OCNTRL (*(CBS_OCNTRL_type*)(CBS_BASE + 0x064)) /* OSCUControl Register */
+
+/* CBS_IOSR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int          : 4;
+    unsigned int CRSYNC   : 1; /* Communication Mode Read Sync Flag */
+    unsigned int CWSYNC   : 1; /* Communication Mode Write Sync Flag */
+    unsigned int CW_ACK   : 1; /* Communication Mode Write Acknowledge */
+    unsigned int COM_SYNC : 1; /* Communication Mode Synchronization Flag */
+    unsigned int HOSTED   : 1; /* Tool Interface in Use */
+    unsigned int          : 3;
+    unsigned int CHANNEL  : 3; /* Channel Indication */
+    unsigned int          : 17;
+  } B;
+  int I;
+  unsigned int U;
+} CBS_IOSR_type;
+#define CBS_IOSR (*(CBS_IOSR_type*)(CBS_BASE + 0x088)) /* IOClientStatus and Control Register */
+
+/* CBS_COMDATA */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int DATA : 32; /* Read/Write Data */
+  } B;
+  int I;
+  unsigned int U;
+} CBS_COMDATA_type;
+#define CBS_COMDATA (*(CBS_COMDATA_type*)(CBS_BASE + 0x084)) /* Communication Mode Data Register */
+
+/* CPUx PFlash Interface 0,1 Configuration Register 0 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int TAG1              : 6; /* Flash Prefetch Buffer 1 Configuration */
+    /* const */ unsigned int RES_0 : 2; /* Reserved */
+    unsigned int TAG2              : 6; /* Flash Prefetch Buffer 2 Configuration */
+    /* const */ unsigned int RES_1 : 2; /* Reserved */
+    unsigned int TAG3              : 6; /* Flash Prefetch Buffer 3 Configuration */
+    /* const */ unsigned int RES_2 : 2; /* Reserved */
+    unsigned int TAG4              : 6; /* Flash Prefetch Buffer 4 Configuration */
+    /* const */ unsigned int RES_3 : 2; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU_FLASHCON0_type;
+
+/* CPUx PFlash Interface 0,1 Configuration Register 1 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int STALL             : 1;  /* Stall Bus Request */
+    /* const */ unsigned int RES_0 : 31; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU_FLASHCON1_type;
+
+/* CPU0_OSEL */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int SHOVEN0  : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN1  : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN2  : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN3  : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN4  : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN5  : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN6  : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN7  : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN8  : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN9  : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN10 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN11 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN12 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN13 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN14 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN15 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN16 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN17 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN18 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN19 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN20 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN21 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN22 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN23 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN24 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN25 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN26 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN27 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN28 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN29 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN30 : 1; /* Shadow Overlay Enable x */
+    unsigned int SHOVEN31 : 1; /* Shadow Overlay Enable x */
+  } B;
+  int I;
+  unsigned int U;
+} CPU_OSEL_type;
+
+/* CPU_RABR0_1 */
+typedef volatile union
+{
+  struct
+  {
+    /* const */ unsigned int RES_0 : 4;  /* Reserved */
+    unsigned int OBASE             : 19; /* Overlay Block Base Address */
+    unsigned int OMEM              : 4;  /* Overlay Memory Select */
+    /* const */ unsigned int RES_2 : 3;  /* Reserved */
+    unsigned int OVEN              : 1;  /* Overlay Enabled */
+  } B;
+  int I;
+  unsigned int U;
+} CPU_RABR0_1_type;
+
+/* CPU_RABR */
+typedef volatile union
+{
+  struct
+  {
+    /* const */ unsigned int RES_0 : 5;  /* Reserved */
+    unsigned int OBASE             : 17; /* Overlay Block Base Address */
+    /* const */ unsigned int RES_1 : 2;  /* Reserved */
+    unsigned int OMEM              : 4;  /* Overlay Memory Select */
+    /* const */ unsigned int RES_2 : 3;  /* Reserved */
+    unsigned int OVEN              : 1;  /* Overlay Enabled */
+  } B;
+  int I;
+  unsigned int U;
+} CPU_RABR_type;
+
+/* CPU_OTAR */
+typedef volatile union
+{
+  struct
+  {
+    /* const */ unsigned int RES_0 : 5;  /* Reserved */
+    unsigned int TBASE             : 23; /* Target Base */
+    /* const */ unsigned int RES_1 : 4;  /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU_OTAR_type;
+
+/* CPU_OMASK0_1 */
+typedef volatile union
+{
+  struct
+  {
+    /* const */ unsigned int RES_0 : 5;  /* Reserved */
+    unsigned int OMASK             : 17; /* Overlay Address Mask */
+    /* const */ unsigned int ONE   : 6;  /* Fixed “1” Values */
+    /* const */ unsigned int RES_1 : 4;  /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU_OMASK0_1_type;
+
+/* CPU_OMASK */
+typedef volatile union
+{
+  struct
+  {
+    /* const */ unsigned int RES_0 : 5;  /* Reserved */
+    unsigned int OMASK             : 12; /* Overlay Address Mask */
+    /* const */ unsigned int ONE   : 11; /* Fixed “1” Values */
+    /* const */ unsigned int RES_1 : 4;  /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU_OMASK_type;
+
+/* **************************** CPU 0 ****************************/
+
+// /* CPU0_KRSTCLR */
+// typedef volatile union
+// {
+//     struct
+//     {
+//          unsigned int CLR : 1; /* Kernel Reset Status Clear */
+//         /* const */ unsigned int RES : 31; /* Reserved */
+//     } B;
+//     int I;
+//     unsigned int U;
+// } CPU0_KRSTCLR_type;
+// #define CPU0_KRSTCLR	(*( CPU0_KRSTCLR_type *) 0xF880D008)	/* CPU0 Reset Clear Register */
+
+// /* CPU0_KRST0 */
+// typedef volatile union
+// {
+//     struct
+//     {
+//          unsigned int RST : 1; /* Kernel Reset */
+//          unsigned int RSTSTAT : 2; /* Kernel Reset Status */
+//         /* const */ unsigned int RES : 29; /* Reserved */
+//     } B;
+//     int I;
+//     unsigned int U;
+// } CPU0_KRST0_type;
+// #define CPU0_KRST0	(*( CPU0_KRST0_type *) 0xF880D000)	/* CPU0 Reset Register 0 */
+
+// /* CPU0_KRST1 */
+// typedef volatile union
+// {
+//     struct
+//     {
+//          unsigned int RST : 1; /* Kernel Reset */
+//         /* const */ unsigned int RES : 31; /* Reserved */
+//     } B;
+//     int I;
+//     unsigned int U;
+// } CPU0_KRST1_type;
+// #define CPU0_KRST1	(*( CPU0_KRST1_type *) 0xF880D004)	/* CPU0 Reset Register 1 */
+
+#define CPU0_PFI0_FLASHCON0 (*(CPU_FLASHCON0_type*)(FSFR_BASE + CORE(0) + PFI_FLASHCON0(0)))
+#define CPU0_PFI1_FLASHCON0 (*(CPU_FLASHCON0_type*)(FSFR_BASE + CORE(0) + PFI_FLASHCON0(1)))
+#define CPU0_PFI0_FLASHCON1 (*(CPU_FLASHCON1_type*)(FSFR_BASE + CORE(0) + PFI_FLASHCON1(0)))
+#define CPU0_PFI1_FLASHCON1 (*(CPU_FLASHCON1_type*)(FSFR_BASE + CORE(0) + PFI_FLASHCON1(1)))
+
+#define CPU0_OSEL    (*(CPU_OSEL_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OSEL))
+#define CPU0_RABR0   (*(CPU_RABR0_1_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(0)))
+#define CPU0_RABR1   (*(CPU_RABR0_1_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(1)))
+#define CPU0_RABR2   (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(2)))
+#define CPU0_RABR3   (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(3)))
+#define CPU0_RABR4   (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(4)))
+#define CPU0_RABR5   (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(5)))
+#define CPU0_RABR6   (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(6)))
+#define CPU0_RABR7   (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(7)))
+#define CPU0_RABR8   (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(8)))
+#define CPU0_RABR9   (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(9)))
+#define CPU0_RABR10  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(10)))
+#define CPU0_RABR11  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(11)))
+#define CPU0_RABR12  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(12)))
+#define CPU0_RABR13  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(13)))
+#define CPU0_RABR14  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(14)))
+#define CPU0_RABR15  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(15)))
+#define CPU0_RABR16  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(16)))
+#define CPU0_RABR17  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(17)))
+#define CPU0_RABR18  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(18)))
+#define CPU0_RABR19  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(19)))
+#define CPU0_RABR20  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(20)))
+#define CPU0_RABR21  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(21)))
+#define CPU0_RABR22  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(22)))
+#define CPU0_RABR23  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(23)))
+#define CPU0_RABR24  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(24)))
+#define CPU0_RABR25  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(25)))
+#define CPU0_RABR26  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(26)))
+#define CPU0_RABR27  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(27)))
+#define CPU0_RABR28  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(28)))
+#define CPU0_RABR29  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(29)))
+#define CPU0_RABR30  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(30)))
+#define CPU0_RABR31  (*(CPU_RABR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + RABR(31)))
+#define CPU0_OTAR0   (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(0)))
+#define CPU0_OTAR1   (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(1)))
+#define CPU0_OTAR2   (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(2)))
+#define CPU0_OTAR3   (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(3)))
+#define CPU0_OTAR4   (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(4)))
+#define CPU0_OTAR5   (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(5)))
+#define CPU0_OTAR6   (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(6)))
+#define CPU0_OTAR7   (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(7)))
+#define CPU0_OTAR8   (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(8)))
+#define CPU0_OTAR9   (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(9)))
+#define CPU0_OTAR10  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(10)))
+#define CPU0_OTAR11  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(11)))
+#define CPU0_OTAR12  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(12)))
+#define CPU0_OTAR13  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(13)))
+#define CPU0_OTAR14  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(14)))
+#define CPU0_OTAR15  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(15)))
+#define CPU0_OTAR16  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(16)))
+#define CPU0_OTAR17  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(17)))
+#define CPU0_OTAR18  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(18)))
+#define CPU0_OTAR19  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(19)))
+#define CPU0_OTAR20  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(20)))
+#define CPU0_OTAR21  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(21)))
+#define CPU0_OTAR22  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(22)))
+#define CPU0_OTAR23  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(23)))
+#define CPU0_OTAR24  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(24)))
+#define CPU0_OTAR25  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(25)))
+#define CPU0_OTAR26  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(26)))
+#define CPU0_OTAR27  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(27)))
+#define CPU0_OTAR28  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(28)))
+#define CPU0_OTAR29  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(29)))
+#define CPU0_OTAR30  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(30)))
+#define CPU0_OTAR31  (*(CPU_OTAR_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OTAR(31)))
+#define CPU0_OMASK0  (*(CPU_OMASK0_1_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(0)))
+#define CPU0_OMASK1  (*(CPU_OMASK0_1_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(1)))
+#define CPU0_OMASK2  (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(2)))
+#define CPU0_OMASK3  (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(3)))
+#define CPU0_OMASK4  (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(4)))
+#define CPU0_OMASK5  (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(5)))
+#define CPU0_OMASK6  (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(6)))
+#define CPU0_OMASK7  (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(7)))
+#define CPU0_OMASK8  (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(8)))
+#define CPU0_OMASK9  (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(9)))
+#define CPU0_OMASK10 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(10)))
+#define CPU0_OMASK11 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(11)))
+#define CPU0_OMASK12 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(12)))
+#define CPU0_OMASK13 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(13)))
+#define CPU0_OMASK14 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(14)))
+#define CPU0_OMASK15 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(15)))
+#define CPU0_OMASK16 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(16)))
+#define CPU0_OMASK17 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(17)))
+#define CPU0_OMASK18 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(18)))
+#define CPU0_OMASK19 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(19)))
+#define CPU0_OMASK20 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(20)))
+#define CPU0_OMASK21 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(21)))
+#define CPU0_OMASK22 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(22)))
+#define CPU0_OMASK23 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(23)))
+#define CPU0_OMASK24 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(24)))
+#define CPU0_OMASK25 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(25)))
+#define CPU0_OMASK26 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(26)))
+#define CPU0_OMASK27 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(27)))
+#define CPU0_OMASK28 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(28)))
+#define CPU0_OMASK29 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(29)))
+#define CPU0_OMASK30 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(30)))
+#define CPU0_OMASK31 (*(CPU_OMASK_type*)(SFR_BASE + CORE(0) + OVERLAY_BASE + OMASK(31)))
+
+/* **************************** CPU 1 ****************************/
+
+// /* CPU1_KRSTCLR */
+// typedef volatile union
+// {
+//     struct
+//     {
+//          unsigned int CLR : 1; /* Kernel Reset Status Clear */
+//         /* const */ unsigned int RES : 31; /* Reserved */
+//     } B;
+//     int I;
+//     unsigned int U;
+// } CPU1_KRSTCLR_type;
+// #define CPU1_KRSTCLR	(*( CPU1_KRSTCLR_type *) 0xF884D008)	/* CPU1 Reset Clear Register */
+
+// /* CPU1_KRST0 */
+// typedef volatile union
+// {
+//     struct
+//     {
+//          unsigned int RST : 1; /* Kernel Reset */
+//          unsigned int RSTSTAT : 2; /* Kernel Reset Status */
+//         /* const */ unsigned int RES : 29; /* Reserved */
+//     } B;
+//     int I;
+//     unsigned int U;
+// } CPU1_KRST0_type;
+// #define CPU1_KRST0	(*( CPU1_KRST0_type *) 0xF884D000)	/* CPU1 Reset Register 0 */
+
+// /* CPU1_KRST1 */
+// typedef volatile union
+// {
+//     struct
+//     {
+//          unsigned int RST : 1; /* Kernel Reset */
+//         /* const */ unsigned int RES : 31; /* Reserved */
+//     } B;
+//     int I;
+//     unsigned int U;
+// } CPU1_KRST1_type;
+// #define CPU1_KRST1	(*( CPU1_KRST1_type *) 0xF884D004)	/* CPU1 Reset Register 1 */
+
+#define CPU1_PFI0_FLASHCON0 (*(CPU_FLASHCON0_type*)(FSFR_BASE + CORE(1) + PFI_FLASHCON0(0)))
+#define CPU1_PFI1_FLASHCON0 (*(CPU_FLASHCON0_type*)(FSFR_BASE + CORE(1) + PFI_FLASHCON0(1)))
+#define CPU1_PFI0_FLASHCON1 (*(CPU_FLASHCON1_type*)(FSFR_BASE + CORE(1) + PFI_FLASHCON1(0)))
+#define CPU1_PFI1_FLASHCON1 (*(CPU_FLASHCON1_type*)(FSFR_BASE + CORE(1) + PFI_FLASHCON1(1)))
+
+#define CPU1_OSEL    (*(CPU_OSEL_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OSEL))
+#define CPU1_RABR0   (*(CPU_RABR0_1_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(0)))
+#define CPU1_RABR1   (*(CPU_RABR0_1_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(1)))
+#define CPU1_RABR2   (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(2)))
+#define CPU1_RABR3   (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(3)))
+#define CPU1_RABR4   (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(4)))
+#define CPU1_RABR5   (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(5)))
+#define CPU1_RABR6   (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(6)))
+#define CPU1_RABR7   (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(7)))
+#define CPU1_RABR8   (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(8)))
+#define CPU1_RABR9   (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(9)))
+#define CPU1_RABR10  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(10)))
+#define CPU1_RABR11  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(11)))
+#define CPU1_RABR12  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(12)))
+#define CPU1_RABR13  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(13)))
+#define CPU1_RABR14  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(14)))
+#define CPU1_RABR15  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(15)))
+#define CPU1_RABR16  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(16)))
+#define CPU1_RABR17  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(17)))
+#define CPU1_RABR18  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(18)))
+#define CPU1_RABR19  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(19)))
+#define CPU1_RABR20  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(20)))
+#define CPU1_RABR21  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(21)))
+#define CPU1_RABR22  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(22)))
+#define CPU1_RABR23  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(23)))
+#define CPU1_RABR24  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(24)))
+#define CPU1_RABR25  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(25)))
+#define CPU1_RABR26  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(26)))
+#define CPU1_RABR27  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(27)))
+#define CPU1_RABR28  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(28)))
+#define CPU1_RABR29  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(29)))
+#define CPU1_RABR30  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(30)))
+#define CPU1_RABR31  (*(CPU_RABR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + RABR(31)))
+#define CPU1_OTAR0   (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(0)))
+#define CPU1_OTAR1   (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(1)))
+#define CPU1_OTAR2   (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(2)))
+#define CPU1_OTAR3   (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(3)))
+#define CPU1_OTAR4   (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(4)))
+#define CPU1_OTAR5   (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(5)))
+#define CPU1_OTAR6   (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(6)))
+#define CPU1_OTAR7   (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(7)))
+#define CPU1_OTAR8   (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(8)))
+#define CPU1_OTAR9   (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(9)))
+#define CPU1_OTAR10  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(10)))
+#define CPU1_OTAR11  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(11)))
+#define CPU1_OTAR12  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(12)))
+#define CPU1_OTAR13  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(13)))
+#define CPU1_OTAR14  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(14)))
+#define CPU1_OTAR15  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(15)))
+#define CPU1_OTAR16  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(16)))
+#define CPU1_OTAR17  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(17)))
+#define CPU1_OTAR18  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(18)))
+#define CPU1_OTAR19  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(19)))
+#define CPU1_OTAR20  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(20)))
+#define CPU1_OTAR21  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(21)))
+#define CPU1_OTAR22  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(22)))
+#define CPU1_OTAR23  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(23)))
+#define CPU1_OTAR24  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(24)))
+#define CPU1_OTAR25  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(25)))
+#define CPU1_OTAR26  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(26)))
+#define CPU1_OTAR27  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(27)))
+#define CPU1_OTAR28  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(28)))
+#define CPU1_OTAR29  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(29)))
+#define CPU1_OTAR30  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(30)))
+#define CPU1_OTAR31  (*(CPU_OTAR_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OTAR(31)))
+#define CPU1_OMASK0  (*(CPU_OMASK0_1_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(0)))
+#define CPU1_OMASK1  (*(CPU_OMASK0_1_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(1)))
+#define CPU1_OMASK2  (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(2)))
+#define CPU1_OMASK3  (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(3)))
+#define CPU1_OMASK4  (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(4)))
+#define CPU1_OMASK5  (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(5)))
+#define CPU1_OMASK6  (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(6)))
+#define CPU1_OMASK7  (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(7)))
+#define CPU1_OMASK8  (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(8)))
+#define CPU1_OMASK9  (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(9)))
+#define CPU1_OMASK10 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(10)))
+#define CPU1_OMASK11 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(11)))
+#define CPU1_OMASK12 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(12)))
+#define CPU1_OMASK13 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(13)))
+#define CPU1_OMASK14 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(14)))
+#define CPU1_OMASK15 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(15)))
+#define CPU1_OMASK16 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(16)))
+#define CPU1_OMASK17 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(17)))
+#define CPU1_OMASK18 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(18)))
+#define CPU1_OMASK19 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(19)))
+#define CPU1_OMASK20 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(20)))
+#define CPU1_OMASK21 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(21)))
+#define CPU1_OMASK22 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(22)))
+#define CPU1_OMASK23 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(23)))
+#define CPU1_OMASK24 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(24)))
+#define CPU1_OMASK25 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(25)))
+#define CPU1_OMASK26 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(26)))
+#define CPU1_OMASK27 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(27)))
+#define CPU1_OMASK28 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(28)))
+#define CPU1_OMASK29 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(29)))
+#define CPU1_OMASK30 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(30)))
+#define CPU1_OMASK31 (*(CPU_OMASK_type*)(SFR_BASE + CORE(1) + OVERLAY_BASE + OMASK(31)))
+
+/* **************************** CPU 2 ****************************/
+
+/* CPU2_KRSTCLR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int CLR             : 1;  /* Kernel Reset Status Clear */
+    /* const */ unsigned int RES : 31; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU2_KRSTCLR_type;
+// #define CPU2_KRSTCLR	(*( CPU2_KRSTCLR_type *) 0xF888D008)	/* CPU2 Reset Clear Register */
+
+/* CPU2_KRST0 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int RST             : 1;  /* Kernel Reset */
+    unsigned int RSTSTAT         : 2;  /* Kernel Reset Status */
+    /* const */ unsigned int RES : 29; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU2_KRST0_type;
+// #define CPU2_KRST0	(*( CPU2_KRST0_type *) 0xF888D000)	/* CPU2 Reset Register 0 */
+
+/* CPU2_KRST1 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int RST             : 1;  /* Kernel Reset */
+    /* const */ unsigned int RES : 31; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU2_KRST1_type;
+// #define CPU2_KRST1	(*( CPU2_KRST1_type *) 0xF888D004)	/* CPU2 Reset Register 1 */
+
+#define CPU2_PFI0_FLASHCON0 (*(CPU_FLASHCON0_type*)(FSFR_BASE + CORE(2) + PFI_FLASHCON0(0)))
+#define CPU2_PFI1_FLASHCON0 (*(CPU_FLASHCON0_type*)(FSFR_BASE + CORE(2) + PFI_FLASHCON0(1)))
+#define CPU2_PFI0_FLASHCON1 (*(CPU_FLASHCON1_type*)(FSFR_BASE + CORE(2) + PFI_FLASHCON1(0)))
+#define CPU2_PFI1_FLASHCON1 (*(CPU_FLASHCON1_type*)(FSFR_BASE + CORE(2) + PFI_FLASHCON1(1)))
+
+#define CPU2_OSEL    (*(CPU_OSEL_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OSEL))
+#define CPU2_RABR0   (*(CPU_RABR0_1_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(0)))
+#define CPU2_RABR1   (*(CPU_RABR0_1_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(1)))
+#define CPU2_RABR2   (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(2)))
+#define CPU2_RABR3   (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(3)))
+#define CPU2_RABR4   (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(4)))
+#define CPU2_RABR5   (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(5)))
+#define CPU2_RABR6   (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(6)))
+#define CPU2_RABR7   (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(7)))
+#define CPU2_RABR8   (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(8)))
+#define CPU2_RABR9   (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(9)))
+#define CPU2_RABR10  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(10)))
+#define CPU2_RABR11  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(11)))
+#define CPU2_RABR12  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(12)))
+#define CPU2_RABR13  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(13)))
+#define CPU2_RABR14  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(14)))
+#define CPU2_RABR15  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(15)))
+#define CPU2_RABR16  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(16)))
+#define CPU2_RABR17  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(17)))
+#define CPU2_RABR18  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(18)))
+#define CPU2_RABR19  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(19)))
+#define CPU2_RABR20  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(20)))
+#define CPU2_RABR21  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(21)))
+#define CPU2_RABR22  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(22)))
+#define CPU2_RABR23  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(23)))
+#define CPU2_RABR24  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(24)))
+#define CPU2_RABR25  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(25)))
+#define CPU2_RABR26  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(26)))
+#define CPU2_RABR27  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(27)))
+#define CPU2_RABR28  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(28)))
+#define CPU2_RABR29  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(29)))
+#define CPU2_RABR30  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(30)))
+#define CPU2_RABR31  (*(CPU_RABR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + RABR(31)))
+#define CPU2_OTAR0   (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(0)))
+#define CPU2_OTAR1   (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(1)))
+#define CPU2_OTAR2   (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(2)))
+#define CPU2_OTAR3   (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(3)))
+#define CPU2_OTAR4   (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(4)))
+#define CPU2_OTAR5   (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(5)))
+#define CPU2_OTAR6   (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(6)))
+#define CPU2_OTAR7   (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(7)))
+#define CPU2_OTAR8   (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(8)))
+#define CPU2_OTAR9   (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(9)))
+#define CPU2_OTAR10  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(10)))
+#define CPU2_OTAR11  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(11)))
+#define CPU2_OTAR12  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(12)))
+#define CPU2_OTAR13  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(13)))
+#define CPU2_OTAR14  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(14)))
+#define CPU2_OTAR15  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(15)))
+#define CPU2_OTAR16  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(16)))
+#define CPU2_OTAR17  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(17)))
+#define CPU2_OTAR18  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(18)))
+#define CPU2_OTAR19  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(19)))
+#define CPU2_OTAR20  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(20)))
+#define CPU2_OTAR21  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(21)))
+#define CPU2_OTAR22  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(22)))
+#define CPU2_OTAR23  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(23)))
+#define CPU2_OTAR24  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(24)))
+#define CPU2_OTAR25  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(25)))
+#define CPU2_OTAR26  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(26)))
+#define CPU2_OTAR27  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(27)))
+#define CPU2_OTAR28  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(28)))
+#define CPU2_OTAR29  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(29)))
+#define CPU2_OTAR30  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(30)))
+#define CPU2_OTAR31  (*(CPU_OTAR_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OTAR(31)))
+#define CPU2_OMASK0  (*(CPU_OMASK0_1_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(0)))
+#define CPU2_OMASK1  (*(CPU_OMASK0_1_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(1)))
+#define CPU2_OMASK2  (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(2)))
+#define CPU2_OMASK3  (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(3)))
+#define CPU2_OMASK4  (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(4)))
+#define CPU2_OMASK5  (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(5)))
+#define CPU2_OMASK6  (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(6)))
+#define CPU2_OMASK7  (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(7)))
+#define CPU2_OMASK8  (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(8)))
+#define CPU2_OMASK9  (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(9)))
+#define CPU2_OMASK10 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(10)))
+#define CPU2_OMASK11 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(11)))
+#define CPU2_OMASK12 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(12)))
+#define CPU2_OMASK13 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(13)))
+#define CPU2_OMASK14 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(14)))
+#define CPU2_OMASK15 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(15)))
+#define CPU2_OMASK16 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(16)))
+#define CPU2_OMASK17 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(17)))
+#define CPU2_OMASK18 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(18)))
+#define CPU2_OMASK19 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(19)))
+#define CPU2_OMASK20 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(20)))
+#define CPU2_OMASK21 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(21)))
+#define CPU2_OMASK22 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(22)))
+#define CPU2_OMASK23 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(23)))
+#define CPU2_OMASK24 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(24)))
+#define CPU2_OMASK25 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(25)))
+#define CPU2_OMASK26 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(26)))
+#define CPU2_OMASK27 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(27)))
+#define CPU2_OMASK28 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(28)))
+#define CPU2_OMASK29 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(29)))
+#define CPU2_OMASK30 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(30)))
+#define CPU2_OMASK31 (*(CPU_OMASK_type*)(SFR_BASE + CORE(2) + OVERLAY_BASE + OMASK(31)))
+
+/* **************************** CPU 3 ****************************/
+
+/* CPU3_KRSTCLR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int CLR             : 1;  /* Kernel Reset Status Clear */
+    /* const */ unsigned int RES : 31; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU3_KRSTCLR_type;
+#define CPU3_KRSTCLR (*(CPU3_KRSTCLR_type*)0xF88CD008) /* CPU3 Reset Clear Register */
+
+/* CPU3_KRST0 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int RST             : 1;  /* Kernel Reset */
+    unsigned int RSTSTAT         : 2;  /* Kernel Reset Status */
+    /* const */ unsigned int RES : 29; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU3_KRST0_type;
+#define CPU3_KRST0 (*(CPU3_KRST0_type*)0xF88CD000) /* CPU3 Reset Register 0 */
+
+/* CPU3_KRST1 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int RST             : 1;  /* Kernel Reset */
+    /* const */ unsigned int RES : 31; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU3_KRST1_type;
+#define CPU3_KRST1 (*(CPU3_KRST1_type*)0xF88CD004) /* CPU3 Reset Register 1 */
+
+#define CPU3_PFI0_FLASHCON0 (*(CPU_FLASHCON0_type*)(FSFR_BASE + CORE(3) + PFI_FLASHCON0(0)))
+#define CPU3_PFI1_FLASHCON0 (*(CPU_FLASHCON0_type*)(FSFR_BASE + CORE(3) + PFI_FLASHCON0(1)))
+#define CPU3_PFI0_FLASHCON1 (*(CPU_FLASHCON1_type*)(FSFR_BASE + CORE(3) + PFI_FLASHCON1(0)))
+#define CPU3_PFI1_FLASHCON1 (*(CPU_FLASHCON1_type*)(FSFR_BASE + CORE(3) + PFI_FLASHCON1(1)))
+
+#define CPU3_OSEL    (*(CPU_OSEL_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OSEL))
+#define CPU3_RABR0   (*(CPU_RABR0_1_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(0)))
+#define CPU3_RABR1   (*(CPU_RABR0_1_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(1)))
+#define CPU3_RABR2   (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(2)))
+#define CPU3_RABR3   (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(3)))
+#define CPU3_RABR4   (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(4)))
+#define CPU3_RABR5   (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(5)))
+#define CPU3_RABR6   (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(6)))
+#define CPU3_RABR7   (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(7)))
+#define CPU3_RABR8   (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(8)))
+#define CPU3_RABR9   (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(9)))
+#define CPU3_RABR10  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(10)))
+#define CPU3_RABR11  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(11)))
+#define CPU3_RABR12  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(12)))
+#define CPU3_RABR13  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(13)))
+#define CPU3_RABR14  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(14)))
+#define CPU3_RABR15  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(15)))
+#define CPU3_RABR16  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(16)))
+#define CPU3_RABR17  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(17)))
+#define CPU3_RABR18  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(18)))
+#define CPU3_RABR19  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(19)))
+#define CPU3_RABR20  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(20)))
+#define CPU3_RABR21  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(21)))
+#define CPU3_RABR22  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(22)))
+#define CPU3_RABR23  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(23)))
+#define CPU3_RABR24  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(24)))
+#define CPU3_RABR25  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(25)))
+#define CPU3_RABR26  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(26)))
+#define CPU3_RABR27  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(27)))
+#define CPU3_RABR28  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(28)))
+#define CPU3_RABR29  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(29)))
+#define CPU3_RABR30  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(30)))
+#define CPU3_RABR31  (*(CPU_RABR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + RABR(31)))
+#define CPU3_OTAR0   (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(0)))
+#define CPU3_OTAR1   (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(1)))
+#define CPU3_OTAR2   (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(2)))
+#define CPU3_OTAR3   (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(3)))
+#define CPU3_OTAR4   (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(4)))
+#define CPU3_OTAR5   (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(5)))
+#define CPU3_OTAR6   (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(6)))
+#define CPU3_OTAR7   (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(7)))
+#define CPU3_OTAR8   (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(8)))
+#define CPU3_OTAR9   (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(9)))
+#define CPU3_OTAR10  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(10)))
+#define CPU3_OTAR11  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(11)))
+#define CPU3_OTAR12  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(12)))
+#define CPU3_OTAR13  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(13)))
+#define CPU3_OTAR14  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(14)))
+#define CPU3_OTAR15  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(15)))
+#define CPU3_OTAR16  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(16)))
+#define CPU3_OTAR17  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(17)))
+#define CPU3_OTAR18  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(18)))
+#define CPU3_OTAR19  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(19)))
+#define CPU3_OTAR20  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(20)))
+#define CPU3_OTAR21  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(21)))
+#define CPU3_OTAR22  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(22)))
+#define CPU3_OTAR23  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(23)))
+#define CPU3_OTAR24  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(24)))
+#define CPU3_OTAR25  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(25)))
+#define CPU3_OTAR26  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(26)))
+#define CPU3_OTAR27  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(27)))
+#define CPU3_OTAR28  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(28)))
+#define CPU3_OTAR29  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(29)))
+#define CPU3_OTAR30  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(30)))
+#define CPU3_OTAR31  (*(CPU_OTAR_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OTAR(31)))
+#define CPU3_OMASK0  (*(CPU_OMASK0_1_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(0)))
+#define CPU3_OMASK1  (*(CPU_OMASK0_1_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(1)))
+#define CPU3_OMASK2  (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(2)))
+#define CPU3_OMASK3  (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(3)))
+#define CPU3_OMASK4  (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(4)))
+#define CPU3_OMASK5  (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(5)))
+#define CPU3_OMASK6  (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(6)))
+#define CPU3_OMASK7  (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(7)))
+#define CPU3_OMASK8  (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(8)))
+#define CPU3_OMASK9  (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(9)))
+#define CPU3_OMASK10 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(10)))
+#define CPU3_OMASK11 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(11)))
+#define CPU3_OMASK12 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(12)))
+#define CPU3_OMASK13 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(13)))
+#define CPU3_OMASK14 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(14)))
+#define CPU3_OMASK15 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(15)))
+#define CPU3_OMASK16 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(16)))
+#define CPU3_OMASK17 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(17)))
+#define CPU3_OMASK18 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(18)))
+#define CPU3_OMASK19 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(19)))
+#define CPU3_OMASK20 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(20)))
+#define CPU3_OMASK21 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(21)))
+#define CPU3_OMASK22 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(22)))
+#define CPU3_OMASK23 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(23)))
+#define CPU3_OMASK24 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(24)))
+#define CPU3_OMASK25 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(25)))
+#define CPU3_OMASK26 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(26)))
+#define CPU3_OMASK27 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(27)))
+#define CPU3_OMASK28 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(28)))
+#define CPU3_OMASK29 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(29)))
+#define CPU3_OMASK30 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(30)))
+#define CPU3_OMASK31 (*(CPU_OMASK_type*)(SFR_BASE + CORE(3) + OVERLAY_BASE + OMASK(31)))
+
+/* **************************** CPU 4 ****************************/
+
+/* CPU4_KRSTCLR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int CLR             : 1;  /* Kernel Reset Status Clear */
+    /* const */ unsigned int RES : 31; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU4_KRSTCLR_type;
+#define CPU4_KRSTCLR (*(CPU4_KRSTCLR_type*)0xF890D008) /* CPU4 Reset Clear Register */
+
+/* CPU4_KRST0 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int RST             : 1;  /* Kernel Reset */
+    unsigned int RSTSTAT         : 2;  /* Kernel Reset Status */
+    /* const */ unsigned int RES : 29; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU4_KRST0_type;
+#define CPU4_KRST0 (*(CPU4_KRST0_type*)0xF890D000) /* CPU4 Reset Register 0 */
+
+/* CPU4_KRST1 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int RST             : 1;  /* Kernel Reset */
+    /* const */ unsigned int RES : 31; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU4_KRST1_type;
+#define CPU4_KRST1 (*(CPU4_KRST1_type*)0xF890D004) /* CPU4 Reset Register 1 */
+
+#define CPU4_OSEL    (*(CPU_OSEL_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OSEL))
+#define CPU4_RABR0   (*(CPU_RABR0_1_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(0)))
+#define CPU4_RABR1   (*(CPU_RABR0_1_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(1)))
+#define CPU4_RABR2   (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(2)))
+#define CPU4_RABR3   (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(3)))
+#define CPU4_RABR4   (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(4)))
+#define CPU4_RABR5   (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(5)))
+#define CPU4_RABR6   (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(6)))
+#define CPU4_RABR7   (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(7)))
+#define CPU4_RABR8   (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(8)))
+#define CPU4_RABR9   (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(9)))
+#define CPU4_RABR10  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(10)))
+#define CPU4_RABR11  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(11)))
+#define CPU4_RABR12  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(12)))
+#define CPU4_RABR13  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(13)))
+#define CPU4_RABR14  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(14)))
+#define CPU4_RABR15  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(15)))
+#define CPU4_RABR16  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(16)))
+#define CPU4_RABR17  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(17)))
+#define CPU4_RABR18  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(18)))
+#define CPU4_RABR19  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(19)))
+#define CPU4_RABR20  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(20)))
+#define CPU4_RABR21  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(21)))
+#define CPU4_RABR22  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(22)))
+#define CPU4_RABR23  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(23)))
+#define CPU4_RABR24  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(24)))
+#define CPU4_RABR25  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(25)))
+#define CPU4_RABR26  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(26)))
+#define CPU4_RABR27  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(27)))
+#define CPU4_RABR28  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(28)))
+#define CPU4_RABR29  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(29)))
+#define CPU4_RABR30  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(30)))
+#define CPU4_RABR31  (*(CPU_RABR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + RABR(31)))
+#define CPU4_OTAR0   (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(0)))
+#define CPU4_OTAR1   (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(1)))
+#define CPU4_OTAR2   (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(2)))
+#define CPU4_OTAR3   (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(3)))
+#define CPU4_OTAR4   (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(4)))
+#define CPU4_OTAR5   (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(5)))
+#define CPU4_OTAR6   (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(6)))
+#define CPU4_OTAR7   (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(7)))
+#define CPU4_OTAR8   (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(8)))
+#define CPU4_OTAR9   (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(9)))
+#define CPU4_OTAR10  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(10)))
+#define CPU4_OTAR11  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(11)))
+#define CPU4_OTAR12  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(12)))
+#define CPU4_OTAR13  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(13)))
+#define CPU4_OTAR14  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(14)))
+#define CPU4_OTAR15  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(15)))
+#define CPU4_OTAR16  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(16)))
+#define CPU4_OTAR17  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(17)))
+#define CPU4_OTAR18  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(18)))
+#define CPU4_OTAR19  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(19)))
+#define CPU4_OTAR20  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(20)))
+#define CPU4_OTAR21  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(21)))
+#define CPU4_OTAR22  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(22)))
+#define CPU4_OTAR23  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(23)))
+#define CPU4_OTAR24  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(24)))
+#define CPU4_OTAR25  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(25)))
+#define CPU4_OTAR26  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(26)))
+#define CPU4_OTAR27  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(27)))
+#define CPU4_OTAR28  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(28)))
+#define CPU4_OTAR29  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(29)))
+#define CPU4_OTAR30  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(30)))
+#define CPU4_OTAR31  (*(CPU_OTAR_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OTAR(31)))
+#define CPU4_OMASK0  (*(CPU_OMASK0_1_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(0)))
+#define CPU4_OMASK1  (*(CPU_OMASK0_1_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(1)))
+#define CPU4_OMASK2  (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(2)))
+#define CPU4_OMASK3  (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(3)))
+#define CPU4_OMASK4  (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(4)))
+#define CPU4_OMASK5  (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(5)))
+#define CPU4_OMASK6  (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(6)))
+#define CPU4_OMASK7  (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(7)))
+#define CPU4_OMASK8  (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(8)))
+#define CPU4_OMASK9  (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(9)))
+#define CPU4_OMASK10 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(10)))
+#define CPU4_OMASK11 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(11)))
+#define CPU4_OMASK12 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(12)))
+#define CPU4_OMASK13 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(13)))
+#define CPU4_OMASK14 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(14)))
+#define CPU4_OMASK15 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(15)))
+#define CPU4_OMASK16 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(16)))
+#define CPU4_OMASK17 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(17)))
+#define CPU4_OMASK18 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(18)))
+#define CPU4_OMASK19 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(19)))
+#define CPU4_OMASK20 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(20)))
+#define CPU4_OMASK21 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(21)))
+#define CPU4_OMASK22 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(22)))
+#define CPU4_OMASK23 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(23)))
+#define CPU4_OMASK24 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(24)))
+#define CPU4_OMASK25 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(25)))
+#define CPU4_OMASK26 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(26)))
+#define CPU4_OMASK27 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(27)))
+#define CPU4_OMASK28 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(28)))
+#define CPU4_OMASK29 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(29)))
+#define CPU4_OMASK30 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(30)))
+#define CPU4_OMASK31 (*(CPU_OMASK_type*)(SFR_BASE + CORE(4) + OVERLAY_BASE + OMASK(31)))
+
+/* **************************** CPU 5 ****************************/
+
+/* CPU5_KRSTCLR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int CLR             : 1;  /* Kernel Reset Status Clear */
+    /* const */ unsigned int RES : 31; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU5_KRSTCLR_type;
+#define CPU5_KRSTCLR (*(CPU5_KRSTCLR_type*)0xF894D008) /* CPU5 Reset Clear Register */
+
+/* CPU5_KRST0 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int RST             : 1;  /* Kernel Reset */
+    unsigned int RSTSTAT         : 2;  /* Kernel Reset Status */
+    /* const */ unsigned int RES : 29; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU5_KRST0_type;
+#define CPU5_KRST0 (*(CPU5_KRST0_type*)0xF894D000) /* CPU5 Reset Register 0 */
+
+/* CPU5_KRST1 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int RST             : 1;  /* Kernel Reset */
+    /* const */ unsigned int RES : 31; /* Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU5_KRST1_type;
+#define CPU5_KRST1 (*(CPU5_KRST1_type*)0xF894D004) /* CPU5 Reset Register 1 */
+
+#define CPU5_OSEL    (*(CPU_OSEL_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OSEL))
+#define CPU5_RABR0   (*(CPU_RABR0_1_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(0)))
+#define CPU5_RABR1   (*(CPU_RABR0_1_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(1)))
+#define CPU5_RABR2   (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(2)))
+#define CPU5_RABR3   (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(3)))
+#define CPU5_RABR4   (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(4)))
+#define CPU5_RABR5   (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(5)))
+#define CPU5_RABR6   (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(6)))
+#define CPU5_RABR7   (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(7)))
+#define CPU5_RABR8   (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(8)))
+#define CPU5_RABR9   (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(9)))
+#define CPU5_RABR10  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(10)))
+#define CPU5_RABR11  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(11)))
+#define CPU5_RABR12  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(12)))
+#define CPU5_RABR13  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(13)))
+#define CPU5_RABR14  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(14)))
+#define CPU5_RABR15  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(15)))
+#define CPU5_RABR16  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(16)))
+#define CPU5_RABR17  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(17)))
+#define CPU5_RABR18  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(18)))
+#define CPU5_RABR19  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(19)))
+#define CPU5_RABR20  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(20)))
+#define CPU5_RABR21  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(21)))
+#define CPU5_RABR22  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(22)))
+#define CPU5_RABR23  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(23)))
+#define CPU5_RABR24  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(24)))
+#define CPU5_RABR25  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(25)))
+#define CPU5_RABR26  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(26)))
+#define CPU5_RABR27  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(27)))
+#define CPU5_RABR28  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(28)))
+#define CPU5_RABR29  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(29)))
+#define CPU5_RABR30  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(30)))
+#define CPU5_RABR31  (*(CPU_RABR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + RABR(31)))
+#define CPU5_OTAR0   (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(0)))
+#define CPU5_OTAR1   (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(1)))
+#define CPU5_OTAR2   (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(2)))
+#define CPU5_OTAR3   (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(3)))
+#define CPU5_OTAR4   (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(4)))
+#define CPU5_OTAR5   (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(5)))
+#define CPU5_OTAR6   (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(6)))
+#define CPU5_OTAR7   (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(7)))
+#define CPU5_OTAR8   (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(8)))
+#define CPU5_OTAR9   (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(9)))
+#define CPU5_OTAR10  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(10)))
+#define CPU5_OTAR11  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(11)))
+#define CPU5_OTAR12  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(12)))
+#define CPU5_OTAR13  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(13)))
+#define CPU5_OTAR14  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(14)))
+#define CPU5_OTAR15  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(15)))
+#define CPU5_OTAR16  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(16)))
+#define CPU5_OTAR17  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(17)))
+#define CPU5_OTAR18  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(18)))
+#define CPU5_OTAR19  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(19)))
+#define CPU5_OTAR20  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(20)))
+#define CPU5_OTAR21  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(21)))
+#define CPU5_OTAR22  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(22)))
+#define CPU5_OTAR23  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(23)))
+#define CPU5_OTAR24  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(24)))
+#define CPU5_OTAR25  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(25)))
+#define CPU5_OTAR26  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(26)))
+#define CPU5_OTAR27  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(27)))
+#define CPU5_OTAR28  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(28)))
+#define CPU5_OTAR29  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(29)))
+#define CPU5_OTAR30  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(30)))
+#define CPU5_OTAR31  (*(CPU_OTAR_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OTAR(31)))
+#define CPU5_OMASK0  (*(CPU_OMASK0_1_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(0)))
+#define CPU5_OMASK1  (*(CPU_OMASK0_1_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(1)))
+#define CPU5_OMASK2  (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(2)))
+#define CPU5_OMASK3  (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(3)))
+#define CPU5_OMASK4  (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(4)))
+#define CPU5_OMASK5  (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(5)))
+#define CPU5_OMASK6  (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(6)))
+#define CPU5_OMASK7  (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(7)))
+#define CPU5_OMASK8  (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(8)))
+#define CPU5_OMASK9  (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(9)))
+#define CPU5_OMASK10 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(10)))
+#define CPU5_OMASK11 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(11)))
+#define CPU5_OMASK12 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(12)))
+#define CPU5_OMASK13 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(13)))
+#define CPU5_OMASK14 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(14)))
+#define CPU5_OMASK15 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(15)))
+#define CPU5_OMASK16 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(16)))
+#define CPU5_OMASK17 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(17)))
+#define CPU5_OMASK18 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(18)))
+#define CPU5_OMASK19 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(19)))
+#define CPU5_OMASK20 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(20)))
+#define CPU5_OMASK21 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(21)))
+#define CPU5_OMASK22 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(22)))
+#define CPU5_OMASK23 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(23)))
+#define CPU5_OMASK24 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(24)))
+#define CPU5_OMASK25 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(25)))
+#define CPU5_OMASK26 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(26)))
+#define CPU5_OMASK27 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(27)))
+#define CPU5_OMASK28 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(28)))
+#define CPU5_OMASK29 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(29)))
+#define CPU5_OMASK30 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(30)))
+#define CPU5_OMASK31 (*(CPU_OMASK_type*)(SFR_BASE + CORE(5) + OVERLAY_BASE + OMASK(31)))
+
+/****************************************************************/
+
+/* SCU_OVCENABLE */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int OVEN0 : 1; /* Overlay Enable 0 */
+    unsigned int OVEN1 : 1; /* Overlay Enable 1 (If product has CPU1) */
+    unsigned int OVEN2 : 1; /* Overlay Enable 2 (If product has CPU2) */
+    unsigned int OVEN3 : 1; /* Overlay Enable 3 (If product has CPU3) */
+    unsigned int OVEN4 : 1; /* Overlay Enable 4 (If product has CPU4) */
+    unsigned int OVEN5 : 1; /* Overlay Enable 5 (If product has CPU5) */
+    unsigned int       : 2; /* reserved */
+    unsigned int GOD   : 1; /** NEW < \brief [8:8] Global Overlay Disable (rw1s) */
+    unsigned int       : 23;
+  } B;
+  int I;
+  unsigned int U;
+} SCU_OVCENABLE_type;
+#define SCU_OVCENABLE (*(SCU_OVCENABLE_type*)(SCU_BASE + 0x01A0)) /* Overlay Enable Register */
+
+/* SCU_OVCCON */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int CSEL0   : 1; /* CPU Select 0 */
+    unsigned int CSEL1   : 1; /* CPU Select 1 (If product has CPU1) */
+    unsigned int CSEL2   : 1; /* CPU Select 2 (If product has CPU2) */
+    unsigned int CSEL3   : 1; /* CPU Select 3 (If product has CPU3) */
+    unsigned int CSEL4   : 1; /* CPU Select 4 (If product has CPU4) */
+    unsigned int CSEL5   : 1; /* CPU Select 3 (If product has CPU3) */
+    unsigned int         : 10;
+    unsigned int OVSTRT  : 1; /* Overlay Start */
+    unsigned int OVSTP   : 1; /* Overlay Stop */
+    unsigned int DCINVAL : 1; /* Data Cache Invalidate */
+    unsigned int         : 5;
+    unsigned int OVCONF  : 1; /* Overlay Configured */
+    unsigned int POVCONF : 1; /* Write Protection for OVCONF */
+    unsigned int         : 6;
+  } B;
+  int I;
+  unsigned int U;
+} SCU_OVCCON_type;
+#define SCU_OVCCON (*(SCU_OVCCON_type*)(SCU_BASE + 0x01A4)) /* Overlay Control Register */
+
+/* SCU_CHIPINFO */
+typedef volatile union
+{
+  struct
+  {
+    /* const */ unsigned int DEPT  : 5;  /**< \brief [4:0] Department Identification Number - DEPT (r) */
+    /* const */ unsigned int MANUF : 11; /**< \brief [15:5] Manufacturer Identification Number - MANUF (r) */
+    /* const */ unsigned int CHREV : 6;  /* Chip Revision Number */
+    /* const */ unsigned int CHTEC : 2;  /* Chip Family */
+    unsigned int                   : 8;  /* reserved */
+
+  } B;
+  int I;
+  unsigned int U;
+} SCU_CHIPINFO_type;
+#define SCU_CHIPINFO (*(SCU_CHIPINFO_type*)(SCU_BASE + 0x01A8)) /* Chip Info Register */
+
+/* UCB0_CHIPID */
+typedef volatile union
+{
+  struct
+  {
+    /* const */ unsigned int PINOUT  : 4; /* Package Type (Material/Type/Pinout) */
+    /* const */ unsigned int FREQ    : 3; /* Max Frequency */
+    /* const */ unsigned int SEC     : 2; /* Security */
+    /* const */ unsigned int ACC     : 2; /* Accelerator */
+    /* const */ unsigned int MEMSIZE : 4; /* PFLASH Memory Size */
+    /* const */ unsigned int FEAT    : 4; /* Feature Option */
+    /* const */ unsigned int CORES   : 3; /* Core Architecture */
+    /* const */ unsigned int PCK     : 4; /* Package Class */
+    /* const */ unsigned int PROD    : 4; /* Product ID */
+    /* const */ unsigned int TEMP    : 2; /* Temperature Range */
+  } B;
+  int I;
+  unsigned int U;
+} UCB0_BASE_type;
+#define UCB0_CHIPID (*(UCB0_BASE_type*)(UCB0_BASE + 0x08)) /* Chip Identification Register */
+
+/* SMM_ID */
+typedef volatile union
+{
+  struct
+  {
+    /* const */ unsigned int MODREV    : 8;  /* Module Revision Number */
+    /* const */ unsigned int MODTYPE   : 8;  /* Module Type */
+    /* const */ unsigned int MODNUMBER : 16; /* Module Number */
+  } B;
+  int I;
+  unsigned int U;
+} SMM_ID_type;
+#define SMM_ID (*(SMM_ID_type*)(SMM_BASE + 0x0008)) /* Module Identification Register */
+
+/* SMM_SYSCON */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int         : 2;
+    unsigned int RAMINTM : 2; /* RAM Integrity Modify */
+    unsigned int Res_0   : 1; /* Reserved */
+    unsigned int         : 3;
+    unsigned int DDC     : 1; /* Disable DXCPL */
+    unsigned int         : 23;
+  } B;
+  int I;
+  unsigned int U;
+} SMM_SYSCON_type;
+#define SMM_SYSCON (*(SMM_SYSCON_type*)(SMM_BASE + 0xB8)) /* System Control Register */
+
+/* SMM_STCON */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int ST_PROT    : 1; /* Start-up Protection Setting*/
+    unsigned int            : 13;
+    unsigned int SFCBAE     : 1; /* Set Flash Config. Sector Access Enble */
+    unsigned int CFCBAE     : 1; /* Clear Flash Config. Sector Access Enable */
+    unsigned int PINIT_DONE : 1; /* INIT_DONE signal for locking unused PROTs */
+    unsigned int            : 15;
+  } B;
+  int I;
+  unsigned int U;
+} SMM_STCON_type;
+#define SMM_STCON (*(SMM_STCON_type*)(SMM_BASE + 0xBC)) /* Start-up Configuration Register */
+
+/* CBS_TRIGS */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int BITNUM : 8; /* Service Request Bit Number to Set */
+    unsigned int        : 24;
+  } B;
+  int I;
+  unsigned int U;
+} CBS_TRIGS_type;
+#define CBS_TRIGS (*(CBS_TRIGS_type*)(CBS_BASE + 0x0318)) /* Set Trigger to Host Register */
+
+/* CBS_TRIGC */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int TRGx_0  : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_1  : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_2  : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_3  : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_4  : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_5  : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_6  : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_7  : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_8  : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_9  : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_10 : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_11 : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_12 : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_13 : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_14 : 1; /* Request Bits of most important register TRIGx */
+    unsigned int TRGx_15 : 1; /* Request Bits of most important register TRIGx */
+    unsigned int         : 8;
+    unsigned int x       : 8; /* Index of most important register TRIGx */
+  } B;
+  int I;
+  unsigned int U;
+} CBS_TRIGC_type;
+#define CBS_TRIGC (*(CBS_TRIGC_type*)(CBS_BASE + 0x031C)) /* Clear Trigger to Host Register */
+
+/* CBS_TRIG */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int TRG0_0  : 1; /* Service Request Bits */
+    unsigned int TRG0_1  : 1; /* Service Request Bits */
+    unsigned int TRG0_2  : 1; /* Service Request Bits */
+    unsigned int TRG0_3  : 1; /* Service Request Bits */
+    unsigned int TRG0_4  : 1; /* Service Request Bits */
+    unsigned int TRG0_5  : 1; /* Service Request Bits */
+    unsigned int TRG0_6  : 1; /* Service Request Bits */
+    unsigned int TRG0_7  : 1; /* Service Request Bits */
+    unsigned int TRG0_8  : 1; /* Service Request Bits */
+    unsigned int TRG0_9  : 1; /* Service Request Bits */
+    unsigned int TRG0_10 : 1; /* Service Request Bits */
+    unsigned int TRG0_11 : 1; /* Service Request Bits */
+    unsigned int TRG0_12 : 1; /* Service Request Bits */
+    unsigned int TRG0_13 : 1; /* Service Request Bits */
+    unsigned int TRG0_14 : 1; /* Service Request Bits */
+    unsigned int TRG0_15 : 1; /* Service Request Bits */
+    unsigned int         : 8;
+    unsigned int REGN_0  : 8; /* TRIG register number */
+  } B;
+  int I;
+  unsigned int U;
+} CBS_TRIG_type;
+#define CBS_TRIG(n) (*(CBS_TRIG_type*)(CBS_BASE + 0x0320 + ((n)*4))) /* Trigger to Host Register n */
+#define CBS_TRIG0   CBS_TRIG(0)
+
+/* CPU0_VCON0 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int EN  : 1;  /**< \brief [0:0] Virtualization Enable - EN (rw) */
+    unsigned int NMI : 1;  /**< \brief [1:1] NMI handling - NMI (rw) */
+    unsigned int     : 30; /**< \brief [31:2] \internal Reserved */
+  } B;
+  int I;
+  unsigned int U;
+} CPU_VCON0_type;
+// #define CPU0_VCON0 (*(CPU_VCON0_type *)(0xF883B000u))/* CPU0 VCON0,  not used */
+#define CPU_VCON0 0xB000
+
+/* ASCLIN0_CLC */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int DISR : 1; /* Module Disable Request Bit */
+    unsigned int DISS : 1; /* Module Disable Status Bit */
+    unsigned int      : 1;
+    unsigned int EDIS : 1; /* Sleep Mode Enable Control */
+    unsigned int      : 28;
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_CLC_type;
+#define ASCLIN0_CLC (*(ASCLIN0_CLC_type*)(ASCLIN0_BASE + 0x000)) /* Clock Control Register */
+
+/* ASCLIN0_IOCR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int ALTI  : 3; /* Alternate Input Select */
+    unsigned int       : 1;
+    unsigned int DEPTH : 6; /* Digital Glitch Filter Depth */
+    unsigned int       : 6;
+    unsigned int CTS   : 2; /* CTS Select */
+    unsigned int       : 7;
+    unsigned int RCPOL : 1; /* RTS CTS Polarity */
+    unsigned int CPOL  : 1; /* Clock Polarity in Synchronous Mode */
+    unsigned int SPOL  : 1; /* Slave Polarity in Synchronous Mode */
+    unsigned int LB    : 1; /* Loop Back Mode */
+    unsigned int CTSEN : 1; /* Input Signal CTS Enable */
+    unsigned int RXM   : 1; /* Receive Monitor */
+    unsigned int TXM   : 1; /* Transmit Monitor */
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_IOCR_type;
+#define ASCLIN0_IOCR (*(ASCLIN0_IOCR_type*)(ASCLIN0_BASE + 0x100)) /* Input and Output Control Register */
+
+/* ASCLIN0_TXFIFOCON */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int FLUSH    : 1; /* Flush the transmit FIFO */
+    unsigned int ENO      : 1; /* Transmit FIFO Outlet Enable */
+    unsigned int          : 2;
+    unsigned int FM       : 2; /* TXFIFO Mode */
+    unsigned int INW      : 2; /* Transmit FIFO Inlet Width */
+    unsigned int INTLEVEL : 4; /* FIFO Interrupt Level */
+    unsigned int          : 4;
+    unsigned int FILL     : 5; /* FIFO Filling Level */
+    unsigned int          : 11;
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_TXFIFOCON_type;
+#define ASCLIN0_TXFIFOCON (*(ASCLIN0_TXFIFOCON_type*)(ASCLIN0_BASE + 0x104)) /* TX FIFO Configuration Register */
+
+/* ASCLIN0_RXFIFOCON */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int FLUSH    : 1; /* Flush the receive FIFO */
+    unsigned int ENI      : 1; /* Receive FIFO Inlet Enable */
+    unsigned int          : 2;
+    unsigned int FM       : 2; /* RXFIFO Mode */
+    unsigned int OUTW     : 2; /* Receive FIFO Outlet Width */
+    unsigned int INTLEVEL : 4; /* FIFO Interrupt Level */
+    unsigned int          : 4;
+    unsigned int FILL     : 5; /* FIFO Filling Level */
+    unsigned int          : 10;
+    unsigned int BUF      : 1; /* Receive Buffer Mode */
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_RXFIFOCON_type;
+#define ASCLIN0_RXFIFOCON (*(ASCLIN0_RXFIFOCON_type*)(ASCLIN0_BASE + 0x108)) /* RX FIFO Configuration Register */
+
+/* ASCLIN0_BITCON */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int PRESCALER    : 12; /* Prescaling of the Fractional Divider */
+    unsigned int              : 4;
+    unsigned int OVERSAMPLING : 4; /* Oversampling Factor */
+    unsigned int              : 4;
+    unsigned int SAMPLEPOINT  : 4; /* Sample Point Position */
+    unsigned int              : 3;
+    unsigned int SM           : 1; /* Sample Mode */
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_BITCON_type;
+#define ASCLIN0_BITCON (*(ASCLIN0_BITCON_type*)(ASCLIN0_BASE + 0x10C)) /* Bit Configuration Register */
+
+/* ASCLIN0_FRAMECON */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int      : 6;
+    unsigned int IDLE : 3; /* Duration of the IDLE delay */
+    unsigned int STOP : 3; /* Number of Stop Bits */
+    unsigned int LEAD : 3; /* Duration of the Leading Delay */
+    unsigned int      : 1;
+    unsigned int MODE : 2; /* Mode Selection */
+    unsigned int      : 10;
+    unsigned int MSB  : 1; /* Shift Direction */
+    unsigned int CEN  : 1; /* Collision Detection Enable */
+    unsigned int PEN  : 1; /* Parity Enable */
+    unsigned int ODD  : 1; /* Parity Type */
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_FRAMECON_type;
+#define ASCLIN0_FRAMECON (*(ASCLIN0_FRAMECON_type*)(ASCLIN0_BASE + 0x110)) /* Frame Control Register */
+
+/* ASCLIN0_DATCON */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int DATLEN   : 4; /* Data Length */
+    unsigned int          : 9;
+    unsigned int HO       : 1; /* Header Only */
+    unsigned int RM       : 1; /* Response Mode */
+    unsigned int CSM      : 1; /* Checksum Mode */
+    unsigned int RESPONSE : 8; /* Response Timeout Threshold Value */
+    unsigned int          : 8;
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_DATCON_type;
+#define ASCLIN0_DATCON (*(ASCLIN0_DATCON_type*)(ASCLIN0_BASE + 0x114)) /* Data Configuration Register */
+
+/* ASCLIN0_BRG */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int DENOMINATOR : 12; /* Denominator */
+    unsigned int             : 4;
+    unsigned int NUMERATOR   : 12; /* Numerator */
+    unsigned int             : 4;
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_BRG_type;
+#define ASCLIN0_BRG (*(ASCLIN0_BRG_type*)(ASCLIN0_BASE + 0x118)) /* Baud Rate Generation Register */
+
+/* ASCLIN0_FLAGS */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int TH   : 1; /* Transmit Header End Flag */
+    unsigned int TR   : 1; /* Transmit Response End Flag */
+    unsigned int RH   : 1; /* Receive Header End Flag */
+    unsigned int RR   : 1; /* Receive Response End Flag */
+    unsigned int      : 1;
+    unsigned int FED  : 1; /* Falling Edge from Level 1 to Level 0 Detected */
+    unsigned int RED  : 1; /* Rising Edge from Level 0 to Level 1 Detected */
+    unsigned int      : 6;
+    unsigned int TWRQ : 1; /* Transmit Wake Request Flag */
+    unsigned int THRQ : 1; /* Transmit Header Request Flag */
+    unsigned int TRRQ : 1; /* Transmit Response Request Flag */
+    unsigned int PE   : 1; /* Parity Error Flag */
+    unsigned int TC   : 1; /* Transmission Completed Flag */
+    unsigned int FE   : 1; /* Framing Error Flag */
+    unsigned int HT   : 1; /* Header Timeout Flag */
+    unsigned int RT   : 1; /* Response Timeout Flag */
+    unsigned int BD   : 1; /* Break Detected Flag */
+    unsigned int LP   : 1; /* LIN Parity Error Flag */
+    unsigned int LA   : 1; /* LIN Autobaud Detection Error Flag */
+    unsigned int LC   : 1; /* LIN Checksum Error Flag */
+    unsigned int CE   : 1; /* Collision Detection Error Flag */
+    unsigned int RFO  : 1; /* Receive FIFO Overflow Flag */
+    unsigned int RFU  : 1; /* Receive FIFO Underflow Flag */
+    unsigned int RFL  : 1; /* Receive FIFO Level Flag */
+    unsigned int      : 1;
+    unsigned int TFO  : 1; /* Transmit FIFO Overflow Flag */
+    unsigned int TFL  : 1; /* Transmit FIFO Level Flag */
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_FLAGS_type;
+#define ASCLIN0_FLAGS (*(ASCLIN0_FLAGS_type*)(ASCLIN0_BASE + 0x12C)) /* Flags Register */
+
+/* ASCLIN0_FLAGSSET */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int THS   : 1; /* Flag Set Bit */
+    unsigned int TRS   : 1; /* Flag Set Bit */
+    unsigned int RHS   : 1; /* Flag Set Bit */
+    unsigned int RRS   : 1; /* Flag Set Bit */
+    unsigned int       : 1;
+    unsigned int FEDS  : 1; /* Flag Set Bit */
+    unsigned int REDS  : 1; /* Flag Set Bit */
+    unsigned int       : 6;
+    unsigned int TWRQS : 1; /* Flag Set Bit */
+    unsigned int THRQS : 1; /* Flag Set Bit */
+    unsigned int TRRQS : 1; /* Flag Set Bit */
+    unsigned int PES   : 1; /* Flag Set Bit */
+    unsigned int TCS   : 1; /* Flag Set Bit */
+    unsigned int FES   : 1; /* Flag Set Bit */
+    unsigned int HTS   : 1; /* Flag Set Bit */
+    unsigned int RTS   : 1; /* Flag Set Bit */
+    unsigned int BDS   : 1; /* Flag Set Bit */
+    unsigned int LPS   : 1; /* Flag Set Bit */
+    unsigned int LAS   : 1; /* Flag Set Bit */
+    unsigned int LCS   : 1; /* Flag Set Bit */
+    unsigned int CES   : 1; /* Flag Set Bit */
+    unsigned int RFOS  : 1; /* Flag Set Bit */
+    unsigned int RFUS  : 1; /* Flag Set Bit */
+    unsigned int RFLS  : 1; /* Flag Set Bit */
+    unsigned int       : 1;
+    unsigned int TFOS  : 1; /* Flag Set Bit */
+    unsigned int TFLS  : 1; /* Flag Set Bit */
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_FLAGSSET_type;
+#define ASCLIN0_FLAGSSET (*(ASCLIN0_FLAGSSET_type*)(ASCLIN0_BASE + 0x130)) /* Flags Set Register */
+
+/* ASCLIN0_FLAGSCLEAR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int THC   : 1; /* Flag Clear Bit */
+    unsigned int TRC   : 1; /* Flag Clear Bit */
+    unsigned int RHC   : 1; /* Flag Clear Bit */
+    unsigned int RRC   : 1; /* Flag Clear Bit */
+    unsigned int       : 1;
+    unsigned int FEDC  : 1; /* Flag Clear Bit */
+    unsigned int REDC  : 1; /* Flag Clear Bit */
+    unsigned int       : 6;
+    unsigned int TWRQC : 1; /* Flag Clear Bit */
+    unsigned int THRQC : 1; /* Flag Clear Bit */
+    unsigned int TRRQC : 1; /* Flag Clear Bit */
+    unsigned int PEC   : 1; /* Flag Clear Bit */
+    unsigned int TCC   : 1; /* Flag Clear Bit */
+    unsigned int FEC   : 1; /* Flag Clear Bit */
+    unsigned int HTC   : 1; /* Flag Clear Bit */
+    unsigned int RTC   : 1; /* Flag Clear Bit */
+    unsigned int BDC   : 1; /* Flag Clear Bit */
+    unsigned int LPC   : 1; /* Flag Clear Bit */
+    unsigned int LAC   : 1; /* Flag Clear Bit */
+    unsigned int LCC   : 1; /* Flag Clear Bit */
+    unsigned int CEC   : 1; /* Flag Clear Bit */
+    unsigned int RFOC  : 1; /* Flag Clear Bit */
+    unsigned int RFUC  : 1; /* Flag Clear Bit */
+    unsigned int RFLC  : 1; /* Flag Clear Bit */
+    unsigned int       : 1;
+    unsigned int TFOC  : 1; /* Flag Clear Bit */
+    unsigned int TFLC  : 1; /* Flag Clear Bit */
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_FLAGSCLEAR_type;
+#define ASCLIN0_FLAGSCLEAR (*(ASCLIN0_FLAGSCLEAR_type*)(ASCLIN0_BASE + 0x134)) /* Flags Clear Register */
+
+/* ASCLIN0_CSR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int CLKSEL : 5; /* Baud Rate Logic Clock Select */
+    unsigned int        : 26;
+    unsigned int CON    : 1; /* Clock On Flag */
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_CSR_type;
+#define ASCLIN0_CSR (*(ASCLIN0_CSR_type*)(ASCLIN0_BASE + 0x13C)) /* Clock Selection Register */
+
+/* ASCLIN0_TXDATA */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int DATA : 32; /* Data */
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_TXDATA_type;
+#define ASCLIN0_TXDATA (*(ASCLIN0_TXDATA_type*)(ASCLIN0_BASE + 0x140)) /* Transmit Data Register */
+
+/* ASCLIN0_RXDATA */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int DATA : 32; /* Data */
+  } B;
+  int I;
+  unsigned int U;
+} ASCLIN0_RXDATA_type;
+#define ASCLIN0_RXDATA (*(ASCLIN0_RXDATA_type*)(ASCLIN0_BASE + 0x160)) /* Receive Data Register */
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+/* SCU_WDTCPU0CON0 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int ENDINIT : 1;  /* End-of-Initialization Control Bit */
+    unsigned int LCK     : 1;  /* Lock Bit to Control Access to WDTxCON0 */
+    unsigned int PW      : 14; /* User-Definable Password Field for Access to WDTxCON0 */
+    unsigned int REL     : 16; /* Reload Value for the WDT (also Time Check Value) */
+  } B;
+  int I;
+  unsigned int U;
+} SCU_WDTCPUxCON0_type;
+#define SCU_WDTCPU0CON0 (*(SCU_WDTCPUxCON0_type*)0xF003624C) /* CPU0 WDT Control Register 0 */
+#define SCU_WDTCPU1CON0 (*(SCU_WDTCPUxCON0_type*)0xF0036258) /* CPU1 WDT Control Register 0 [if CPU1 exists] */
+#define SCU_WDTCPU2CON0 (*(SCU_WDTCPUxCON0_type*)0xF0036264) /* CPU2 WDT Control Register 0 [if CPU2 exists] */
+#define SCU_WDTCPU3CON0 (*(SCU_WDTCPUxCON0_type*)0xF0036270) /* CPU3 WDT Control Register 0 [if CPU3 exists] */
+#define SCU_WDTCPU4CON0 (*(SCU_WDTCPUxCON0_type*)0xF003627C) /* CPU4 WDT Control Register 0 [if CPU4 exists] */
+#define SCU_WDTCPU5CON0 (*(SCU_WDTCPUxCON0_type*)0xF0036288) /* CPU5 WDT Control Register 0 [if CPU5 exists] */
+
+/* SCU_WDTCPU0CON1 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int      : 2;
+    unsigned int IR0  : 1; /* Input Frequency Request Control */
+    unsigned int DR   : 1; /* Disable Request Control Bit */
+    unsigned int      : 1;
+    unsigned int IR1  : 1; /* Input Frequency Request Control */
+    unsigned int UR   : 1; /* Unlock Restriction Request Control Bit */
+    unsigned int PAR  : 1; /* Password Auto-sequence Request Bit */
+    unsigned int TCR  : 1; /* Counter Check Request Bit */
+    unsigned int TCTR : 7; /* Timer Check Tolerance Request */
+    unsigned int      : 16;
+  } B;
+  int I;
+  unsigned int U;
+} SCU_WDTCPUxCON1_type;
+#define SCU_WDTCPU0CON1 (*(SCU_WDTCPUxCON1_type*)0xF0036250) /* CPU0 WDT Control Register 1 */
+#define SCU_WDTCPU1CON1 (*(SCU_WDTCPUxCON1_type*)0xF003625C) /* CPU1 WDT Control Register 1 [If CPU1 exists] */
+#define SCU_WDTCPU2CON1 (*(SCU_WDTCPUxCON1_type*)0xF0036268) /* CPU2 WDT Control Register 1 [If CPU2 exists] */
+#define SCU_WDTCPU3CON1 (*(SCU_WDTCPUxCON1_type*)0xF0036274) /* CPU3 WDT Control Register 1 [If CPU3 exists] */
+#define SCU_WDTCPU4CON1 (*(SCU_WDTCPUxCON1_type*)0xF0036280) /* CPU4 WDT Control Register 1 [If CPU4 exists] */
+#define SCU_WDTCPU5CON1 (*(SCU_WDTCPUxCON1_type*)0xF003628C) /* CPU5 WDT Control Register 1 [If CPU5 exists] */
+
+/* SCU_WDTSCON0 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int ENDINIT : 1;  /* End-of-Initialization Control Bit */
+    unsigned int LCK     : 1;  /* Lock Bit to Control Access to WDTxCON0 */
+    unsigned int PW      : 14; /* User-Definable Password Field for Access to WDTxCON0 */
+    unsigned int REL     : 16; /* Reload Value for the WDT (also Time Check Value) */
+  } B;
+  int I;
+  unsigned int U;
+} SCU_WDTSCON0_type;
+#define SCU_WDTSCON0 (*(SCU_WDTSCON0_type*)0xF00362A8) /* System WDT Control Register 0 */
+
+/* SCU_WDTSCON1 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int CLRIRF : 1; /* Clear Internal Reset Flag */
+    unsigned int        : 1;
+    unsigned int IR0    : 1; /* Input Frequency Request Control */
+    unsigned int DR     : 1; /* Disable Request Control Bit */
+    unsigned int        : 1;
+    unsigned int IR1    : 1; /* Input Frequency Request Control */
+    unsigned int UR     : 1; /* Unlock Restriction Request Control Bit */
+    unsigned int PAR    : 1; /* Password Auto-sequence Request Bit */
+    unsigned int TCR    : 1; /* Counter Check Request Bit */
+    unsigned int TCTR   : 7; /* Timer Check Tolerance Request */
+    unsigned int        : 16;
+  } B;
+  int I;
+  unsigned int U;
+} SCU_WDTSCON1_type;
+#define SCU_WDTSCON1 (*(SCU_WDTSCON1_type*)0xF00362AC) /* System WDT Control Register 1 */
+
+#if 0
+/* SCU_WDTSSR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int AE  : 1;  /* Watchdog Access Error Status Flag */
+    unsigned int OE  : 1;  /* Watchdog Overflow Error Status Flag */
+    unsigned int IS0 : 1;  /* Watchdog Input Clock Status */
+    unsigned int DS  : 1;  /* Watchdog Enable/Disable Status Flag */
+    unsigned int TO  : 1;  /* Watchdog Time-Out Mode Flag */
+    unsigned int IS1 : 1;  /* Watchdog Input Clock Status */
+    unsigned int US  : 1;  /* SMU Unlock Restriction Status Flag */
+    unsigned int PAS : 1;  /* Password Auto-sequence Status Flag */
+    unsigned int TCS : 1;  /* Timer Check Status Flag */
+    unsigned int TCT : 7;  /* Timer Check Tolerance */
+    unsigned int TIM : 16; /* Timer Value */
+  } B;
+  int I;
+  unsigned int U;
+} SCU_WDTSSR_type;
+  #define SCU_WDTSSR (*(SCU_WDTSSR_type*)0xF00362B0) /* System WDT Status Register */
+#endif
+
+#if 0
+/* SCU_WDTCPU0SR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int AE  : 1;  /* Watchdog Access Error Status Flag */
+    unsigned int OE  : 1;  /* Watchdog Overflow Error Status Flag */
+    unsigned int IS0 : 1;  /* Watchdog Input Clock Status */
+    unsigned int DS  : 1;  /* Watchdog Enable/Disable Status Flag */
+    unsigned int TO  : 1;  /* Watchdog Time-Out Mode Flag */
+    unsigned int IS1 : 1;  /* Watchdog Input Clock Status */
+    unsigned int US  : 1;  /* SMU Unlock Restriction Status Flag */
+    unsigned int PAS : 1;  /* Password Auto-sequence Status Flag */
+    unsigned int TCS : 1;  /* Timer Check Status Flag */
+    unsigned int TCT : 7;  /* Timer Check Tolerance */
+    unsigned int TIM : 16; /* Timer Value */
+  } B;
+  int I;
+  unsigned int U;
+} SCU_WDTCPUxSR_type;
+  #define SCU_WDTCPU0SR (*(SCU_WDTCPUxSR_type*)0xF0036254) /* CPU0 WDT Status Register */
+  #define SCU_WDTCPU1SR (*(SCU_WDTCPUxSR_type*)0xF0036260) /* CPU1 WDT Status Register [If CPU1 exists] */
+  #define SCU_WDTCPU2SR (*(SCU_WDTCPUxSR_type*)0xF003626C) /* CPU2 WDT Status Register [If CPU2 exists] */
+  #define SCU_WDTCPU3SR (*(SCU_WDTCPUxSR_type*)0xF0036278) /* CPU3 WDT Status Register [If CPU3 exists] */
+  #define SCU_WDTCPU4SR (*(SCU_WDTCPUxSR_type*)0xF0036284) /* CPU4 WDT Status Register [If CPU4 exists] */
+  #define SCU_WDTCPU5SR (*(SCU_WDTCPUxSR_type*)0xF0036290) /* CPU5 WDT Status Register [If CPU5 exists] */
+
+/* SCU_RSTSTAT */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int ESR0  : 1; /* Reset Request Trigger Reset Status for ESR0 */
+    unsigned int ESR1  : 1; /* Reset Request Trigger Reset Status for ESR1 */
+    unsigned int       : 1;
+    unsigned int SMU   : 1; /* Reset Request Trigger Reset Status for SMU */
+    unsigned int SW    : 1; /* Reset Request Trigger Reset Status for SW */
+    unsigned int STM0  : 1; /* Reset Request Trigger Reset Status for STM0 Compare Match */
+    unsigned int STM1  : 1; /* Reset Request Trigger Reset Status for STM1 Compare Match (If Product has STM1) */
+    unsigned int STM2  : 1; /* Reset Request Trigger Reset Status for STM2 Compare Match (If Product has STM2) */
+    unsigned int STM3  : 1; /* Reset Request Trigger Reset Status for STM3 Compare Match (If Product has STM3) */
+    unsigned int STM4  : 1; /* Reset Request Trigger Reset Status for STM4 Compare Match (If Product has STM4) */
+    unsigned int STM5  : 1; /* Reset Request Trigger Reset Status for STM5 Compare Match (If Product has STM5) */
+    unsigned int       : 5;
+    unsigned int PORST : 1; /* Reset Request Trigger Reset Status for PORST */
+    unsigned int       : 1;
+    unsigned int CB0   : 1; /* Reset Request Trigger Reset Status for Cerberus System Reset */
+    unsigned int CB1   : 1; /* Reset Request Trigger Reset Status for Cerberus Debug Reset */
+    unsigned int CB3   : 1; /* Reset Request Trigger Reset Status for Cerberus Application Reset */
+    unsigned int       : 2;
+    unsigned int EVRC  : 1; /* Reset Request Trigger Reset Status for EVRC */
+    unsigned int EVR33 : 1; /* Reset Request Trigger Reset Status for EVR33 (If EVR33 exists in this product) */
+    unsigned int SWD   : 1; /* Reset Request Trigger Reset Status for Supply Watchdog (If SWD exists in this product) */
+    unsigned int       : 2;
+    unsigned int STBYR : 1; /* Reset Request Trigger Reset Status for Standby Regulator Watchdog (STBYR) */
+    /* const */ unsigned int RBBF0 : 1; /* Reserved */
+    /* const */ unsigned int RBBF1 : 1; /* Reserved */
+    unsigned int                   : 1;
+  } B;
+  int I;
+  unsigned int U;
+} SCU_RSTSTAT_type;
+  #define SCU_RSTSTAT   (*(SCU_RSTSTAT_type*)0xF1)         /* Reset Status Register */
+#endif
+
+/* SCU_RSTCON */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int ESR0 : 2; /* ESR0 Reset Request Trigger Reset Configuration */
+    unsigned int ESR1 : 2; /* ESR1 Reset Request Trigger Reset Configuration */
+    unsigned int      : 2;
+    unsigned int SMU  : 2; /* SMU Reset Request Trigger Reset Configuration */
+    unsigned int SW   : 2; /* SW Reset Request Trigger Reset Configuration */
+    unsigned int STM0 : 2; /* STM0 Reset Request Trigger Reset Configuration */
+    unsigned int STM1 : 2; /* STM1 Reset Request Trigger Reset Configuration (If Product has STM1) */
+    unsigned int STM2 : 2; /* STM2 Reset Request Trigger Reset Configuration (If Product has STM2) */
+    unsigned int STM3 : 2; /* STM3 Reset Request Trigger Reset Configuration (If Product has STM3) */
+    unsigned int STM4 : 2; /* STM4 Reset Request Trigger Reset Configuration (If Product has STM4) */
+    unsigned int STM5 : 2; /* STM5 Reset Request Trigger Reset Configuration (If Product has STM5) */
+    unsigned int      : 10;
+  } B;
+  int I;
+  unsigned int U;
+} SCU_RSTCON_type;
+#define SCU_RSTCON (*(SCU_RSTCON_type*)0xF0) /* Reset Configuration Register */
+
+/* SCU_RSTCON2 */
+typedef volatile union
+{
+  struct
+  {
+    /* const */ unsigned int Res_0 : 1;  /* Reserved */
+    unsigned int CLRC              : 1;  /* Clear Cold Reset Status */
+    /* const */ unsigned int Res_1 : 14; /* Reserved */
+    unsigned int USRINFO           : 16; /* User Information */
+  } B;
+  int I;
+  unsigned int U;
+} SCU_RSTCON2_type;
+#define SCU_RSTCON2 (*(SCU_RSTCON2_type*)0xF0036064) /* Additional Reset Control Register */
+
+/* SWRSTCON */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int          : 1;
+    unsigned int SWRSTREQ : 1; /* Software Reset Request */
+    unsigned int          : 6;
+    unsigned int RES      : 8; /* Reserved */
+    unsigned int          : 16;
+  } B;
+  int I;
+  unsigned int U;
+} SWRSTCON_type;
+#define SWRSTCON     (*(SWRSTCON_type*)0xF0036060) /* Software Reset Configuration Register */
+#define SCU_SWRSTCON SWRSTCON                      /* for compatibility with legacy code */
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/* Watchdog Timer Unit, Control Register A */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int LCK  : 1;  /* Lock Bit */
+    unsigned int PW   : 15; /* Password */
+    unsigned int TCVI : 16; /* Timer check value inverted */
+  } B;
+  int I;
+  unsigned int U;
+} WDT_CTRL_A_type;
+#define WDT_CPU_0_CTRL_A (*(WDT_CTRL_A_type*)(WDT_BASE + 0x03C)) /* CPU0 Watchdog Control Register A */
+#define WDT_SYS_CTRL_A   (*(WDT_CTRL_A_type*)(WDT_BASE + 0x1A8)) /* System Watchdog Control Register A */
+
+/* Watchdog Timer Unit, Control Register B */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int DR       : 1;  /* Disable request Bit */
+    unsigned int reserved : 3;  /* read as 0 */
+    unsigned int IFSR     : 2;  /* Input frequency selection request bit */
+    unsigned int URR      : 1;  /* Unlock restriction request bit */
+    unsigned int PAR      : 1;  /* Password auto-sequence request bit */
+    unsigned int TCR      : 1;  /* Timer check request bit */
+    unsigned int TCTR     : 7;  /* Timer check tolerance request */
+    unsigned int TIMR     : 16; /* Timer base request value */
+  } B;
+  int I;
+  unsigned int U;
+} WDT_CTRL_B_type;
+#define WDT_CPU_0_CTRL_B (*(WDT_CTRL_B_type*)(WDT_BASE + 0x040)) /* CPU0 Watchdog Control Register B */
+#define WDT_SYS_CTRL_B   (*(WDT_CTRL_B_type*)(WDT_BASE + 0x1AC)) /* System Watchdog Control Register B */
+
+/* Watchdog Timer Unit, Status Register */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int D   : 1;  /* Watchdog enable/disable status flag */
+    unsigned int TOM : 1;  /* Watchdog timeout mode flag */
+    unsigned int OE  : 1;  /* Watchdog overflow error status flag */
+    unsigned int AE  : 1;  /* Watchdog access error status flag */
+    unsigned int IFS : 2;  /* Watchdog internal frequency selection status flag */
+    unsigned int UR  : 1;  /* SMU unlock restriction flag */
+    unsigned int PA  : 1;  /* Password auto-sequence status flag */
+    unsigned int TC  : 1;  /* Timer check status flag */
+    unsigned int TCT : 7;  /* Timer check tolerance */
+    unsigned int TIM : 16; /* Timer value */
+  } B;
+  int I;
+  unsigned int U;
+} WDT_STAT_type;
+#define WDT_CPU_0_STAT (*(WDT_STAT_type*)(WDT_BASE + 0x044)) /* CPU0 Watchdog Status Register */
+#define WDT_SYS_STAT   (*(WDT_STAT_type*)(WDT_BASE + 0x1B0)) /* System Watchdog Status Register */
+
+
+/* STMx_CLC */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int DISR : 1; /* Module Disable Request Bit */
+    unsigned int DISS : 1; /* Module Disable Status Bit */
+    unsigned int      : 30;
+  } B;
+  int I;
+  unsigned int U;
+} STMx_CLC_type;
+/* Clock Control Register */
+#define STM0_CLC (*(STMx_CLC_type*)(SFR_BASE + CORE(0) + 0x0000))
+#define STM1_CLC (*(STMx_CLC_type*)(SFR_BASE + CORE(1) + 0x0000))
+#define STM2_CLC (*(STMx_CLC_type*)(SFR_BASE + CORE(2) + 0x0000))
+#define STM3_CLC (*(STMx_CLC_type*)(SFR_BASE + CORE(3) + 0x0000))
+#define STM4_CLC (*(STMx_CLC_type*)(SFR_BASE + CORE(4) + 0x0000))
+#define STM5_CLC (*(STMx_CLC_type*)(SFR_BASE + CORE(5) + 0x0000))
+
+/* STMx_OCS */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int        : 24;
+    unsigned int SUS    : 4; /* OCDS Suspend Control */
+    unsigned int SUS_P  : 1; /* SUS Write Protection */
+    unsigned int SUSSTA : 1; /* Suspend State */
+    unsigned int        : 2;
+  } B;
+  int I;
+  unsigned int U;
+} STMx_OCS_type;
+/* OCDS Control and Status Register */
+#define STM0_OCS (*(STMx_OCS_type*)(SFR_BASE + CORE(0) + 0x0004))
+#define STM1_OCS (*(STMx_OCS_type*)(SFR_BASE + CORE(1) + 0x0004))
+#define STM2_OCS (*(STMx_OCS_type*)(SFR_BASE + CORE(2) + 0x0004))
+#define STM3_OCS (*(STMx_OCS_type*)(SFR_BASE + CORE(3) + 0x0004))
+#define STM4_OCS (*(STMx_OCS_type*)(SFR_BASE + CORE(4) + 0x0004))
+#define STM5_OCS (*(STMx_OCS_type*)(SFR_BASE + CORE(5) + 0x0004))
+
+/* STMx_ABS, formerly STMx_TIM0 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int STM : 32; /* System Timer Bits [31:0], STM_ABS contains 64 Bits */
+  } B;
+  int I;
+  unsigned int U;
+} STMx_ABS_type;
+/* Timer Register 0 - STMx_ABS- new 64 bit timer located near core */
+#define STM0_ABS  (*(STMx_ABS_type*)(SFR_BASE + CORE(0) + 0x0020))
+#define STM1_ABS  (*(STMx_ABS_type*)(SFR_BASE + CORE(1) + 0x0020))
+#define STM2_ABS  (*(STMx_ABS_type*)(SFR_BASE + CORE(2) + 0x0020))
+#define STM3_ABS  (*(STMx_ABS_type*)(SFR_BASE + CORE(3) + 0x0020))
+#define STM4_ABS  (*(STMx_ABS_type*)(SFR_BASE + CORE(4) + 0x0020))
+#define STM5_ABS  (*(STMx_ABS_type*)(SFR_BASE + CORE(5) + 0x0020))
+#define STM0_TIM0 STM0_ABS // to be compatible with old code
+#define STM1_TIM0 STM1_ABS
+#define STM2_TIM0 STM2_ABS
+
+/* STMx_ABS64 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned long long STM : 64; /* System Timer Bits [63:0] */
+  } B;
+  unsigned long long U;
+} STMx_ABS64_type;
+/* Timer Register 0 - STMx_ABS64 - new 64 bit timer located near core */
+#define STM0_ABS64 (*(STMx_ABS64_type*)(SFR_BASE + CORE(0) + 0x0020))
+
+/* STMx_CMPy */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int CMPVAL : 32; /* Compare Value of Compare Register x */
+  } B;
+  int I;
+  unsigned int U;
+} STMx_CMPy_type;
+#define STM0_CMP0 (*(STMx_CMPy_type*)(SFR_BASE + CORE(0) + 0x0100)) /* Compare Register 0 */
+#define STM0_CMP1 (*(STMx_CMPy_type*)(SFR_BASE + CORE(0) + 0x0104)) /* Compare Register 1 */
+#define STM1_CMP0 (*(STMx_CMPy_type*)(SFR_BASE + CORE(1) + 0x0100)) /* Compare Register 0 */
+#define STM1_CMP1 (*(STMx_CMPy_type*)(SFR_BASE + CORE(1) + 0x0104)) /* Compare Register 1 */
+#define STM2_CMP0 (*(STMx_CMPy_type*)(SFR_BASE + CORE(2) + 0x0100)) /* Compare Register 0 */
+#define STM2_CMP1 (*(STMx_CMPy_type*)(SFR_BASE + CORE(2) + 0x0104)) /* Compare Register 1 */
+#define STM3_CMP0 (*(STMx_CMPy_type*)(SFR_BASE + CORE(3) + 0x0100)) /* Compare Register 0 */
+#define STM3_CMP1 (*(STMx_CMPy_type*)(SFR_BASE + CORE(3) + 0x0104)) /* Compare Register 1 */
+#define STM4_CMP0 (*(STMx_CMPy_type*)(SFR_BASE + CORE(4) + 0x0100)) /* Compare Register 0 */
+#define STM4_CMP1 (*(STMx_CMPy_type*)(SFR_BASE + CORE(4) + 0x0104)) /* Compare Register 1 */
+#define STM5_CMP0 (*(STMx_CMPy_type*)(SFR_BASE + CORE(5) + 0x0100)) /* Compare Register 0 */
+#define STM5_CMP1 (*(STMx_CMPy_type*)(SFR_BASE + CORE(5) + 0x0104)) /* Compare Register 1 */
+
+/* STMx_CMCON */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int MSIZE0   : 5; /* Compare Register Size for CMP0 */
+    unsigned int          : 3;
+    unsigned int MSTART0  : 5; /* Start Bit Location for CMP0 */
+    unsigned int          : 2;
+    unsigned int RELCOMP0 : 1; /* Relative timer Comparison 0 */
+    unsigned int MSIZE1   : 5; /* Compare Register Size for CMP1 */
+    unsigned int          : 3;
+    unsigned int MSTART1  : 5; /* Start Bit Location for CMP1 */
+    unsigned int          : 2;
+    unsigned int RELCOMP1 : 1; /* Relative timer Comparison 1 */
+  } B;
+  int I;
+  unsigned int U;
+} STMx_CMCON_type;
+/* Compare Match Control Register */
+#define STM0_CMCON (*(STMx_CMCON_type*)(SFR_BASE + CORE(0) + 0x0108))
+#define STM1_CMCON (*(STMx_CMCON_type*)(SFR_BASE + CORE(1) + 0x0108))
+#define STM2_CMCON (*(STMx_CMCON_type*)(SFR_BASE + CORE(2) + 0x0108))
+#define STM3_CMCON (*(STMx_CMCON_type*)(SFR_BASE + CORE(3) + 0x0108))
+#define STM4_CMCON (*(STMx_CMCON_type*)(SFR_BASE + CORE(4) + 0x0108))
+#define STM5_CMCON (*(STMx_CMCON_type*)(SFR_BASE + CORE(5) + 0x0108))
+
+/* STMx_ICR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int CMP0EN : 1; /* Compare Register CMP0 Interrupt Enable Control */
+    unsigned int CMP0OS : 1; /* Compare Register CMP0 Interrupt Output Selection */
+    unsigned int        : 2;
+    unsigned int CMP1EN : 1; /* Compare Register CMP1 Interrupt Enable Control */
+    unsigned int CMP1OS : 1; /* Compare Register CMP1 Interrupt Output Selection */
+    unsigned int        : 26;
+  } B;
+  int I;
+  unsigned int U;
+} STMx_ICR_type;
+/* Interrupt Control Register */
+#define STM0_ICR (*(STMx_ICR_type*)(SFR_BASE + CORE(0) + 0x010C))
+#define STM1_ICR (*(STMx_ICR_type*)(SFR_BASE + CORE(1) + 0x010C))
+#define STM2_ICR (*(STMx_ICR_type*)(SFR_BASE + CORE(2) + 0x010C))
+#define STM3_ICR (*(STMx_ICR_type*)(SFR_BASE + CORE(3) + 0x010C))
+#define STM4_ICR (*(STMx_ICR_type*)(SFR_BASE + CORE(4) + 0x010C))
+#define STM5_ICR (*(STMx_ICR_type*)(SFR_BASE + CORE(5) + 0x010C))
+
+/* STMx_ISCR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int CMP0IRR : 1; /* Reset Compare Register CMP0 Interrupt Flag */
+    unsigned int CMP0IRS : 1; /* Set Compare Register CMP0 Interrupt Flag */
+    unsigned int CMP1IRR : 1; /* Reset Compare Register CMP1 Interrupt Flag */
+    unsigned int CMP1IRS : 1; /* Set Compare Register CMP1 Interrupt Flag */
+    unsigned int         : 28;
+  } B;
+  int I;
+  unsigned int U;
+} STMx_ISCR_type;
+/* Interrupt Set/Clear Register */
+#define STM0_ISCR (*(STMx_ISCR_type*)(SFR_BASE + CORE(0) + 0x0110))
+#define STM1_ISCR (*(STMx_ISCR_type*)(SFR_BASE + CORE(1) + 0x0110))
+#define STM2_ISCR (*(STMx_ISCR_type*)(SFR_BASE + CORE(2) + 0x0110))
+#define STM3_ISCR (*(STMx_ISCR_type*)(SFR_BASE + CORE(3) + 0x0110))
+#define STM4_ISCR (*(STMx_ISCR_type*)(SFR_BASE + CORE(4) + 0x0110))
+#define STM5_ISCR (*(STMx_ISCR_type*)(SFR_BASE + CORE(5) + 0x0110))
+
+
+/* SRC_STM_CPUwSRx */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int SRPN   : 8; /* Service Request Priority Number */
+    unsigned int VM     : 3; /* Virtual Machine */
+    unsigned int CS     : 1; /* Cyber Security */
+    unsigned int TOS    : 4; /* Type of Service Control */
+    unsigned int        : 7;
+    unsigned int SRE    : 1; /* Service Request Enable */
+    unsigned int SRR    : 1; /* Service Request Status */
+    unsigned int CLRR   : 1; /* Service Request Clear */
+    unsigned int SETR   : 1; /* Service Request Set */
+    unsigned int IOV    : 1; /* Interrupt Overflow Status */
+    unsigned int IOVCLR : 1; /* Interrupt Overflow Clear */
+    unsigned int        : 3;
+
+  } B;
+  int I;
+  unsigned int U;
+} SRC_STM_CPUwSRx_type;
+#define SRC_STM_CPU0SR(x) (*(SRC_STM_CPUwSRx_type*)(SRC_BASE + STM_CPU0_SR(x))) /* System Timer CPU0 Service Request x */
+#define SRC_STM_CPU1SR(x) (*(SRC_STM_CPUwSRx_type*)(SRC_BASE + STM_CPU1_SR(x)))
+#define SRC_STM_CPU2SR(x) (*(SRC_STM_CPUwSRx_type*)(SRC_BASE + STM_CPU2_SR(x)))
+#define SRC_STM_CPU3SR(x) (*(SRC_STM_CPUwSRx_type*)(SRC_BASE + STM_CPU3_SR(x)))
+#define SRC_STM_CPU4SR(x) (*(SRC_STM_CPUwSRx_type*)(SRC_BASE + STM_CPU4_SR(x)))
+#define SRC_STM_CPU5SR(x) (*(SRC_STM_CPUwSRx_type*)(SRC_BASE + STM_CPU5_SR(x)))
+
+
+/* Pxx_PADCFGp_DRVCFG */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int DIR       : 1; /* Pad Signal direction */
+    unsigned int OD        : 1; /* Output Buffer Configuration */
+    unsigned int RESERVED1 : 2;
+    unsigned int MODE      : 4; /* Input or Alt. Output signal selection */
+    unsigned int PD        : 3; /* Pad drive mode */
+    unsigned int RESERVED2 : 1;
+    unsigned int PL        : 3; /* Pad level selection */
+    unsigned int RESERVED3 : 17;
+  } B;
+  int I;
+  unsigned int U;
+} Pxx_PADCFGp_DRVCFG_type;
+
+/* Port Pad configuration Control Register for Pad 00 */
+#define P00_PADCFGp_DRVCFG(p) (*(Pxx_PADCFGp_DRVCFG_type*)(P00_BASE + PxxPADCFGp_DRVCFG_OFFSET(p)))
+
+/* P00_OUT */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0  : 1; /* [0:0] Input Bit 0 (rwh) */
+    unsigned int P1  : 1; /* Input Bit 1 (rwh) */
+    unsigned int P2  : 1; /* Input Bit 2 (rwh) */
+    unsigned int P3  : 1; /* Input Bit 3 (rwh) */
+    unsigned int P4  : 1; /* Input Bit 4 (rwh) */
+    unsigned int P5  : 1; /* Input Bit 5 (rwh) */
+    unsigned int P6  : 1; /* Input Bit 6 (rwh) */
+    unsigned int P7  : 1; /* Input Bit 7 (rwh) */
+    unsigned int P8  : 1; /* Input Bit 8 (rwh) */
+    unsigned int P9  : 1; /* Input Bit 9 (rwh) */
+    unsigned int P10 : 1; /* Input Bit 10 (rwh) */
+    unsigned int P11 : 1; /* Input Bit 11 (rwh) */
+    unsigned int P12 : 1; /* Input Bit 12 (rwh) */
+    unsigned int P13 : 1; /* Input Bit 13 (rwh) */
+    unsigned int P14 : 1; /* Input Bit 14 (rwh) */
+    unsigned int P15 : 1; /* Input Bit 15 (rwh) */
+    unsigned int     : 16;
+  } B;
+  int I;
+  unsigned int U;
+} P_OUT_type;
+#define P00_OUT (*(P_OUT_type*)(P00_BASE + 0x20)) /* Port Output Register */
+
+/* Port Pad configuration Control Register for Pad 10 */
+#define P10_PADCFGp_DRVCFG(p) (*(Pxx_PADCFGp_DRVCFG_type*)(P10_BASE + PxxPADCFGp_DRVCFG_OFFSET(p)))
+
+/* P10_OUT */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0  : 1; /* Output Bit 0 */
+    unsigned int P1  : 1; /* Output Bit 1 */
+    unsigned int P2  : 1; /* Output Bit 2 */
+    unsigned int P3  : 1; /* Output Bit 3 */
+    unsigned int P4  : 1; /* Output Bit 4 */
+    unsigned int P5  : 1; /* Output Bit 5 */
+    unsigned int P6  : 1; /* Output Bit 6 */
+    unsigned int P7  : 1; /* Output Bit 7 */
+    unsigned int P8  : 1; /* Output Bit 8 */
+    unsigned int P9  : 1; /* Output Bit 9 */
+    unsigned int P10 : 1; /* Output Bit 10 */
+    unsigned int P11 : 1; /* Output Bit 11 */
+    unsigned int P12 : 1; /* Output Bit 12 */
+    unsigned int P13 : 1; /* Output Bit 13 */
+    unsigned int P14 : 1; /* Output Bit 14 */
+    unsigned int P15 : 1; /* Output Bit 15 */
+    unsigned int     : 16;
+  } B;
+  int I;
+  unsigned int U;
+} P10_OUT_type;
+#define P10_OUT (*(P10_OUT_type*)(P10_BASE + 0x20)) /* Port 10 Output Register */
+
+/* P10_IN */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0  : 1; /* Input Bit 0 */
+    unsigned int P1  : 1; /* Input Bit 1 */
+    unsigned int P2  : 1; /* Input Bit 2 */
+    unsigned int P3  : 1; /* Input Bit 3 */
+    unsigned int P4  : 1; /* Input Bit 4 */
+    unsigned int P5  : 1; /* Input Bit 5 */
+    unsigned int P6  : 1; /* Input Bit 6 */
+    unsigned int P7  : 1; /* Input Bit 7 */
+    unsigned int P8  : 1; /* Input Bit 8 */
+    unsigned int P9  : 1; /* Input Bit 9 */
+    unsigned int P10 : 1; /* Input Bit 10 */
+    unsigned int P11 : 1; /* Input Bit 11 */
+    unsigned int P12 : 1; /* Input Bit 12 */
+    unsigned int P13 : 1; /* Input Bit 13 */
+    unsigned int P14 : 1; /* Input Bit 14 */
+    unsigned int P15 : 1; /* Input Bit 15 */
+    unsigned int     : 16;
+  } B;
+  int I;
+  unsigned int U;
+} P10_IN_type;
+#define P10_IN (*(P10_IN_type*)(P10_BASE + 0x24)) /* Port 10 Input Register */
+
+/* P10_OMR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int PS0   : 1; /* Set Bit 0 */
+    unsigned int PS1   : 1; /* Set Bit 1 */
+    unsigned int PS2   : 1; /* Set Bit 2 */
+    unsigned int PS3   : 1; /* Set Bit 3 */
+    unsigned int PS4   : 1; /* Set Bit 4 */
+    unsigned int PS5   : 1; /* Set Bit 5 */
+    unsigned int PS6   : 1; /* Set Bit 6 */
+    unsigned int PS7   : 1; /* Set Bit 7 */
+    unsigned int PS8   : 1; /* Set Bit 8 */
+    unsigned int PS9   : 1; /* Set Bit 9 */
+    unsigned int PS10  : 1; /* Set Bit 10 */
+    unsigned int PS11  : 1; /* Set Bit 11 */
+    unsigned int PS12  : 1; /* Set Bit 12 */
+    unsigned int PS13  : 1; /* Set Bit 13 */
+    unsigned int PS14  : 1; /* Set Bit 14 */
+    unsigned int PS15  : 1; /* Set Bit 15 */
+    unsigned int PCL0  : 1; /* Clear Bit 0 */
+    unsigned int PCL1  : 1; /* Clear Bit 1 */
+    unsigned int PCL2  : 1; /* Clear Bit 2 */
+    unsigned int PCL3  : 1; /* Clear Bit 3 */
+    unsigned int PCL4  : 1; /* Clear Bit 4 */
+    unsigned int PCL5  : 1; /* Clear Bit 5 */
+    unsigned int PCL6  : 1; /* Clear Bit 6 */
+    unsigned int PCL7  : 1; /* Clear Bit 7 */
+    unsigned int PCL8  : 1; /* Clear Bit 8 */
+    unsigned int PCL9  : 1; /* Clear Bit 9 */
+    unsigned int PCL10 : 1; /* Clear Bit 10 */
+    unsigned int PCL11 : 1; /* Clear Bit 11 */
+    unsigned int PCL12 : 1; /* Clear Bit 12 */
+    unsigned int PCL13 : 1; /* Clear Bit 13 */
+    unsigned int PCL14 : 1; /* Clear Bit 14 */
+    unsigned int PCL15 : 1; /* Clear Bit 15 */
+  } B;
+  int I;
+  unsigned int U;
+} P10_OMR_type;
+#define P10_OMR (*(P10_OMR_type*)(P10_BASE + 0x38)) /* Port 10 Output Modification Register */
+
+/* P13 PADCFGp DRVCFG */
+#define P13_PADCFGp_DRVCFG(p) (*(Pxx_PADCFGp_DRVCFG_type*)(P13_BASE + PxxPADCFGp_DRVCFG_OFFSET(p)))
+
+/* P13_IN */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0  : 1; /* Input Bit 0 */
+    unsigned int P1  : 1; /* Input Bit 1 */
+    unsigned int P2  : 1; /* Input Bit 2 */
+    unsigned int P3  : 1; /* Input Bit 3 */
+    unsigned int P4  : 1; /* Input Bit 4 */
+    unsigned int P5  : 1; /* Input Bit 5 */
+    unsigned int P6  : 1; /* Input Bit 6 */
+    unsigned int P7  : 1; /* Input Bit 7 */
+    unsigned int P8  : 1; /* Input Bit 8 */
+    unsigned int P9  : 1; /* Input Bit 9 */
+    unsigned int P10 : 1; /* Input Bit 10 */
+    unsigned int P11 : 1; /* Input Bit 11 */
+    unsigned int P12 : 1; /* Input Bit 12 */
+    unsigned int P13 : 1; /* Input Bit 13 */
+    unsigned int P14 : 1; /* Input Bit 14 */
+    unsigned int P15 : 1; /* Input Bit 15 */
+    unsigned int     : 16;
+  } B;
+  int I;
+  unsigned int U;
+} P13_IN_type;
+#define P13_IN (*(P13_IN_type*)(P13_BASE + 0x24)) /* Port 13 Input Register */
+
+/* P13_OUT */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0  : 1; /* Output Bit 0 */
+    unsigned int P1  : 1; /* Output Bit 1 */
+    unsigned int P2  : 1; /* Output Bit 2 */
+    unsigned int P3  : 1; /* Output Bit 3 */
+    unsigned int P4  : 1; /* Output Bit 4 */
+    unsigned int P5  : 1; /* Output Bit 5 */
+    unsigned int P6  : 1; /* Output Bit 6 */
+    unsigned int P7  : 1; /* Output Bit 7 */
+    unsigned int P8  : 1; /* Output Bit 8 */
+    unsigned int P9  : 1; /* Output Bit 9 */
+    unsigned int P10 : 1; /* Output Bit 10 */
+    unsigned int P11 : 1; /* Output Bit 11 */
+    unsigned int P12 : 1; /* Output Bit 12 */
+    unsigned int P13 : 1; /* Output Bit 13 */
+    unsigned int P14 : 1; /* Output Bit 14 */
+    unsigned int P15 : 1; /* Output Bit 15 */
+    unsigned int     : 16;
+  } B;
+  int I;
+  unsigned int U;
+} P13_OUT_type;
+#define P13_OUT (*(P13_OUT_type*)(P13_BASE + 0x20)) /* Port 13 Output Register */
+
+/* P13_OMR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int PS0   : 1; /* Set Bit 0 */
+    unsigned int PS1   : 1; /* Set Bit 1 */
+    unsigned int PS2   : 1; /* Set Bit 2 */
+    unsigned int PS3   : 1; /* Set Bit 3 */
+    unsigned int PS4   : 1; /* Set Bit 4 */
+    unsigned int PS5   : 1; /* Set Bit 5 */
+    unsigned int PS6   : 1; /* Set Bit 6 */
+    unsigned int PS7   : 1; /* Set Bit 7 */
+    unsigned int PS8   : 1; /* Set Bit 8 */
+    unsigned int PS9   : 1; /* Set Bit 9 */
+    unsigned int PS10  : 1; /* Set Bit 10 */
+    unsigned int PS11  : 1; /* Set Bit 11 */
+    unsigned int PS12  : 1; /* Set Bit 12 */
+    unsigned int PS13  : 1; /* Set Bit 13 */
+    unsigned int PS14  : 1; /* Set Bit 14 */
+    unsigned int PS15  : 1; /* Set Bit 15 */
+    unsigned int PCL0  : 1; /* Clear Bit 0 */
+    unsigned int PCL1  : 1; /* Clear Bit 1 */
+    unsigned int PCL2  : 1; /* Clear Bit 2 */
+    unsigned int PCL3  : 1; /* Clear Bit 3 */
+    unsigned int PCL4  : 1; /* Clear Bit 4 */
+    unsigned int PCL5  : 1; /* Clear Bit 5 */
+    unsigned int PCL6  : 1; /* Clear Bit 6 */
+    unsigned int PCL7  : 1; /* Clear Bit 7 */
+    unsigned int PCL8  : 1; /* Clear Bit 8 */
+    unsigned int PCL9  : 1; /* Clear Bit 9 */
+    unsigned int PCL10 : 1; /* Clear Bit 10 */
+    unsigned int PCL11 : 1; /* Clear Bit 11 */
+    unsigned int PCL12 : 1; /* Clear Bit 12 */
+    unsigned int PCL13 : 1; /* Clear Bit 13 */
+    unsigned int PCL14 : 1; /* Clear Bit 14 */
+    unsigned int PCL15 : 1; /* Clear Bit 15 */
+  } B;
+  int I;
+  unsigned int U;
+} P13_OMR_type;
+#define P13_OMR (*(P13_OMR_type*)(P13_BASE + 0x38)) /* Port 13 Output Modification Register */
+
+/* P14 PADCFGp DRVCFG */
+#define P14_PADCFGp_DRVCFG(p) (*(Pxx_PADCFGp_DRVCFG_type*)(P14_BASE + PxxPADCFGp_DRVCFG_OFFSET(p)))
+
+/* P14_IN */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0  : 1; /* Input Bit 0 */
+    unsigned int P1  : 1; /* Input Bit 1 */
+    unsigned int P2  : 1; /* Input Bit 2 */
+    unsigned int P3  : 1; /* Input Bit 3 */
+    unsigned int P4  : 1; /* Input Bit 4 */
+    unsigned int P5  : 1; /* Input Bit 5 */
+    unsigned int P6  : 1; /* Input Bit 6 */
+    unsigned int P7  : 1; /* Input Bit 7 */
+    unsigned int P8  : 1; /* Input Bit 8 */
+    unsigned int P9  : 1; /* Input Bit 9 */
+    unsigned int P10 : 1; /* Input Bit 10 */
+    unsigned int P11 : 1; /* Input Bit 11 */
+    unsigned int P12 : 1; /* Input Bit 12 */
+    unsigned int P13 : 1; /* Input Bit 13 */
+    unsigned int P14 : 1; /* Input Bit 14 */
+    unsigned int P15 : 1; /* Input Bit 15 */
+    unsigned int     : 16;
+  } B;
+  int I;
+  unsigned int U;
+} P14_IN_type;
+#define P14_IN (*(P14_IN_type*)(P14_BASE + 0x24)) /* Port 14 Input Register */
+
+
+/* P21 PADCFGp DRVCFG */
+#define P21_PADCFGp_DRVCFG(p) (*(Pxx_PADCFGp_DRVCFG_type*)(P21_BASE + PxxPADCFGp_DRVCFG_OFFSET(p)))
+
+/* P21_IN */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0 : 1; /* Input Bit 0 */
+    unsigned int P1 : 1; /* Input Bit 1 */
+    unsigned int P2 : 1; /* Input Bit 2 */
+    unsigned int P3 : 1; /* Input Bit 3 */
+    unsigned int P4 : 1; /* Input Bit 4 */
+    unsigned int P5 : 1; /* Input Bit 5 */
+    unsigned int P6 : 1; /* Input Bit 6 */
+    unsigned int P7 : 1; /* Input Bit 7 */
+    unsigned int    : 24;
+  } B;
+  int I;
+  unsigned int U;
+} P21_IN_type;
+#define P21_IN (*(P21_IN_type*)(P21_BASE + 0x24)) /* Port 21 Input Register */
+
+/* P23 PADCFGp DRVCFG */
+#define P23_PADCFGp_DRVCFG(p) (*(Pxx_PADCFGp_DRVCFG_type*)(P23_BASE + PxxPADCFGp_DRVCFG_OFFSET(p)))
+
+/* P23_IN */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0 : 1; /* Input Bit 0 */
+    unsigned int P1 : 1; /* Input Bit 1 */
+    unsigned int P2 : 1; /* Input Bit 2 */
+    unsigned int P3 : 1; /* Input Bit 3 */
+    unsigned int P4 : 1; /* Input Bit 4 */
+    unsigned int P5 : 1; /* Input Bit 5 */
+    unsigned int P6 : 1; /* Input Bit 6 */
+    unsigned int P7 : 1; /* Input Bit 7 */
+    unsigned int    : 24;
+  } B;
+  int I;
+  unsigned int U;
+} P23_IN_type;
+#define P23_IN (*(P23_IN_type*)(P23_BASE + 0x24)) /* Port 23 Input Register */
+
+/* P23_OUT */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0 : 1; /* Output Bit 0 */
+    unsigned int P1 : 1; /* Output Bit 1 */
+    unsigned int P2 : 1; /* Output Bit 2 */
+    unsigned int P3 : 1; /* Output Bit 3 */
+    unsigned int P4 : 1; /* Output Bit 4 */
+    unsigned int P5 : 1; /* Output Bit 5 */
+    unsigned int P6 : 1; /* Output Bit 6 */
+    unsigned int P7 : 1; /* Output Bit 7 */
+    unsigned int    : 24;
+  } B;
+  int I;
+  unsigned int U;
+} P23_OUT_type;
+#define P23_OUT (*(P23_OUT_type*)(P23_BASE + 0x20)) /* Port 23 Output Register */
+
+/* P23_OMR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int PS0  : 1; /* Set Bit 0 */
+    unsigned int PS1  : 1; /* Set Bit 1 */
+    unsigned int PS2  : 1; /* Set Bit 2 */
+    unsigned int PS3  : 1; /* Set Bit 3 */
+    unsigned int PS4  : 1; /* Set Bit 4 */
+    unsigned int PS5  : 1; /* Set Bit 5 */
+    unsigned int PS6  : 1; /* Set Bit 6 */
+    unsigned int PS7  : 1; /* Set Bit 7 */
+    unsigned int      : 8;
+    unsigned int PCL0 : 1; /* Clear Bit 0 */
+    unsigned int PCL1 : 1; /* Clear Bit 1 */
+    unsigned int PCL2 : 1; /* Clear Bit 2 */
+    unsigned int PCL3 : 1; /* Clear Bit 3 */
+    unsigned int PCL4 : 1; /* Clear Bit 4 */
+    unsigned int PCL5 : 1; /* Clear Bit 5 */
+    unsigned int PCL6 : 1; /* Clear Bit 6 */
+    unsigned int PCL7 : 1; /* Clear Bit 7 */
+    unsigned int      : 8;
+  } B;
+  int I;
+  unsigned int U;
+} P23_OMR_type;
+#define P23_OMR (*(P23_OMR_type*)(P23_BASE + 0x38)) /* Port 23 Output Modification Register */
+
+/* P30 PADCFGp DRVCFG */
+#define P30_PADCFGp_DRVCFG(p) (*(Pxx_PADCFGp_DRVCFG_type*)(P30_BASE + PxxPADCFGp_DRVCFG_OFFSET(p)))
+
+/* P30_OUT */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0  : 1; /* Output Bit 0 */
+    unsigned int P1  : 1; /* Output Bit 1 */
+    unsigned int P2  : 1; /* Output Bit 2 */
+    unsigned int P3  : 1; /* Output Bit 3 */
+    unsigned int P4  : 1; /* Output Bit 4 */
+    unsigned int P5  : 1; /* Output Bit 5 */
+    unsigned int P6  : 1; /* Output Bit 6 */
+    unsigned int P7  : 1; /* Output Bit 7 */
+    unsigned int P8  : 1; /* Output Bit 8 */
+    unsigned int P9  : 1; /* Output Bit 9 */
+    unsigned int P10 : 1; /* Output Bit 10 */
+    unsigned int P11 : 1; /* Output Bit 11 */
+    unsigned int P12 : 1; /* Output Bit 12 */
+    unsigned int P13 : 1; /* Output Bit 13 */
+    unsigned int P14 : 1; /* Output Bit 14 */
+    unsigned int P15 : 1; /* Output Bit 15 */
+    unsigned int     : 16;
+  } B;
+  int I;
+  unsigned int U;
+} P30_OUT_type;
+#define P30_OUT (*(P30_OUT_type*)(P30_BASE + 0x20)) /* Port 30 Output Register */
+
+/* P30_IN */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0  : 1; /* Input Bit 0 */
+    unsigned int P1  : 1; /* Input Bit 1 */
+    unsigned int P2  : 1; /* Input Bit 2 */
+    unsigned int P3  : 1; /* Input Bit 3 */
+    unsigned int P4  : 1; /* Input Bit 4 */
+    unsigned int P5  : 1; /* Input Bit 5 */
+    unsigned int P6  : 1; /* Input Bit 6 */
+    unsigned int P7  : 1; /* Input Bit 7 */
+    unsigned int P8  : 1; /* Input Bit 8 */
+    unsigned int P9  : 1; /* Input Bit 9 */
+    unsigned int P10 : 1; /* Input Bit 10 */
+    unsigned int P11 : 1; /* Input Bit 11 */
+    unsigned int P12 : 1; /* Input Bit 12 */
+    unsigned int P13 : 1; /* Input Bit 13 */
+    unsigned int P14 : 1; /* Input Bit 14 */
+    unsigned int P15 : 1; /* Input Bit 15 */
+    unsigned int     : 16;
+  } B;
+  int I;
+  unsigned int U;
+} P30_IN_type;
+#define P30_IN (*(P30_IN_type*)(P30_BASE + 0x24)) /* Port 30 Input Register */
+
+/* P30_OMR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int PS0   : 1; /* Set Bit 0 */
+    unsigned int PS1   : 1; /* Set Bit 1 */
+    unsigned int PS2   : 1; /* Set Bit 2 */
+    unsigned int PS3   : 1; /* Set Bit 3 */
+    unsigned int PS4   : 1; /* Set Bit 4 */
+    unsigned int PS5   : 1; /* Set Bit 5 */
+    unsigned int PS6   : 1; /* Set Bit 6 */
+    unsigned int PS7   : 1; /* Set Bit 7 */
+    unsigned int PS8   : 1; /* Set Bit 8 */
+    unsigned int PS9   : 1; /* Set Bit 9 */
+    unsigned int PS10  : 1; /* Set Bit 10 */
+    unsigned int PS11  : 1; /* Set Bit 11 */
+    unsigned int PS12  : 1; /* Set Bit 12 */
+    unsigned int PS13  : 1; /* Set Bit 13 */
+    unsigned int PS14  : 1; /* Set Bit 14 */
+    unsigned int PS15  : 1; /* Set Bit 15 */
+    unsigned int PCL0  : 1; /* Clear Bit 0 */
+    unsigned int PCL1  : 1; /* Clear Bit 1 */
+    unsigned int PCL2  : 1; /* Clear Bit 2 */
+    unsigned int PCL3  : 1; /* Clear Bit 3 */
+    unsigned int PCL4  : 1; /* Clear Bit 4 */
+    unsigned int PCL5  : 1; /* Clear Bit 5 */
+    unsigned int PCL6  : 1; /* Clear Bit 6 */
+    unsigned int PCL7  : 1; /* Clear Bit 7 */
+    unsigned int PCL8  : 1; /* Clear Bit 8 */
+    unsigned int PCL9  : 1; /* Clear Bit 9 */
+    unsigned int PCL10 : 1; /* Clear Bit 10 */
+    unsigned int PCL11 : 1; /* Clear Bit 11 */
+    unsigned int PCL12 : 1; /* Clear Bit 12 */
+    unsigned int PCL13 : 1; /* Clear Bit 13 */
+    unsigned int PCL14 : 1; /* Clear Bit 14 */
+    unsigned int PCL15 : 1; /* Clear Bit 15 */
+  } B;
+  int I;
+  unsigned int U;
+} P30_OMR_type;
+#define P30_OMR (*(P30_OMR_type*)(P30_BASE + 0x38)) /* Port 30 Output Modification Register */
+
+/* P32 PADCFGp DRVCFG */
+#define P32_PADCFGp_DRVCFG(p) (*(Pxx_PADCFGp_DRVCFG_type*)(P32_BASE + PxxPADCFGp_DRVCFG_OFFSET(p)))
+
+
+/* P33 PADCFGp DRVCFG */
+#define P33_PADCFGp_DRVCFG(p) (*(Pxx_PADCFGp_DRVCFG_type*)(P33_BASE + PxxPADCFGp_DRVCFG_OFFSET(p)))
+
+/* P33_IN */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0  : 1; /* Input Bit 0 */
+    unsigned int P1  : 1; /* Input Bit 1 */
+    unsigned int P2  : 1; /* Input Bit 2 */
+    unsigned int P3  : 1; /* Input Bit 3 */
+    unsigned int P4  : 1; /* Input Bit 4 */
+    unsigned int P5  : 1; /* Input Bit 5 */
+    unsigned int P6  : 1; /* Input Bit 6 */
+    unsigned int P7  : 1; /* Input Bit 7 */
+    unsigned int P8  : 1; /* Input Bit 8 */
+    unsigned int P9  : 1; /* Input Bit 9 */
+    unsigned int P10 : 1; /* Input Bit 10 */
+    unsigned int P11 : 1; /* Input Bit 11 */
+    unsigned int P12 : 1; /* Input Bit 12 */
+    unsigned int P13 : 1; /* Input Bit 13 */
+    unsigned int P14 : 1; /* Input Bit 14 */
+    unsigned int P15 : 1; /* Input Bit 15 */
+    unsigned int     : 16;
+  } B;
+  int I;
+  unsigned int U;
+} P33_IN_type;
+#define P33_IN (*(P33_IN_type*)(P33_BASE + 0x24)) /* Port 33 Input Register */
+
+/* P33_OUT */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int P0  : 1; /* Output Bit 0 */
+    unsigned int P1  : 1; /* Output Bit 1 */
+    unsigned int P2  : 1; /* Output Bit 2 */
+    unsigned int P3  : 1; /* Output Bit 3 */
+    unsigned int P4  : 1; /* Output Bit 4 */
+    unsigned int P5  : 1; /* Output Bit 5 */
+    unsigned int P6  : 1; /* Output Bit 6 */
+    unsigned int P7  : 1; /* Output Bit 7 */
+    unsigned int P8  : 1; /* Output Bit 8 */
+    unsigned int P9  : 1; /* Output Bit 9 */
+    unsigned int P10 : 1; /* Output Bit 10 */
+    unsigned int P11 : 1; /* Output Bit 11 */
+    unsigned int P12 : 1; /* Output Bit 12 */
+    unsigned int P13 : 1; /* Output Bit 13 */
+    unsigned int P14 : 1; /* Output Bit 14 */
+    unsigned int P15 : 1; /* Output Bit 15 */
+    unsigned int     : 16;
+  } B;
+  int I;
+  unsigned int U;
+} P33_OUT_type;
+#define P33_OUT (*(P33_OUT_type*)(P33_BASE + 0x20)) /* Port 33 Output Register */
+
+/* P33_OMR */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int PS0   : 1; /* Set Bit 0 */
+    unsigned int PS1   : 1; /* Set Bit 1 */
+    unsigned int PS2   : 1; /* Set Bit 2 */
+    unsigned int PS3   : 1; /* Set Bit 3 */
+    unsigned int PS4   : 1; /* Set Bit 4 */
+    unsigned int PS5   : 1; /* Set Bit 5 */
+    unsigned int PS6   : 1; /* Set Bit 6 */
+    unsigned int PS7   : 1; /* Set Bit 7 */
+    unsigned int PS8   : 1; /* Set Bit 8 */
+    unsigned int PS9   : 1; /* Set Bit 9 */
+    unsigned int PS10  : 1; /* Set Bit 10 */
+    unsigned int PS11  : 1; /* Set Bit 11 */
+    unsigned int PS12  : 1; /* Set Bit 12 */
+    unsigned int PS13  : 1; /* Set Bit 13 */
+    unsigned int PS14  : 1; /* Set Bit 14 */
+    unsigned int PS15  : 1; /* Set Bit 15 */
+    unsigned int PCL0  : 1; /* Clear Bit 0 */
+    unsigned int PCL1  : 1; /* Clear Bit 1 */
+    unsigned int PCL2  : 1; /* Clear Bit 2 */
+    unsigned int PCL3  : 1; /* Clear Bit 3 */
+    unsigned int PCL4  : 1; /* Clear Bit 4 */
+    unsigned int PCL5  : 1; /* Clear Bit 5 */
+    unsigned int PCL6  : 1; /* Clear Bit 6 */
+    unsigned int PCL7  : 1; /* Clear Bit 7 */
+    unsigned int PCL8  : 1; /* Clear Bit 8 */
+    unsigned int PCL9  : 1; /* Clear Bit 9 */
+    unsigned int PCL10 : 1; /* Clear Bit 10 */
+    unsigned int PCL11 : 1; /* Clear Bit 11 */
+    unsigned int PCL12 : 1; /* Clear Bit 12 */
+    unsigned int PCL13 : 1; /* Clear Bit 13 */
+    unsigned int PCL14 : 1; /* Clear Bit 14 */
+    unsigned int PCL15 : 1; /* Clear Bit 15 */
+  } B;
+  int I;
+  unsigned int U;
+} P33_OMR_type;
+#define P33_OMR (*(P33_OMR_type*)(P33_BASE + 0x38)) /* Port 33 Output Modification Register */
+
+
+/* Crystal oscillator control register */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int           : 4;
+    unsigned int APREN     : 1; /* [4:4] Amplitude regulation enable (rw) */
+    unsigned int HYSEN     : 1; /* [5:5] Hysteresis enable (rw) */
+    unsigned int           : 2;
+    unsigned int MODE      : 3; /* [10:8] Oscillator Mode */
+    unsigned int           : 1;
+    unsigned int X1CAP0EN  : 1; /* [12:12] XTAL 1 capacitance 0 enable (rw) */
+    unsigned int X1CAP1EN  : 1; /* [13:13] XTAL 1 capacitance 1 enable (rw) */
+    unsigned int X1CAP2EN  : 1; /* [14:14] XTAL 1 capacitance 2 enable (rw) */
+    unsigned int X1CAP3EN  : 1; /* [15:15] XTAL 1 capacitance 3 enable (rw) */
+    unsigned int X2CAP0EN  : 1; /* [16:16] XTAL 2 capacitance 0 enable (rw) */
+    unsigned int X2CAP1EN  : 1; /* [17:17] XTAL 2 capacitance 1 enable (rw) */
+    unsigned int X2CAP2EN  : 1; /* [18:18] XTAL 2 capacitance 2 enable (rw) */
+    unsigned int X2CAP3EN  : 1; /* [19:19] XTAL 2 capacitance 3 enable (rw) */
+    unsigned int           : 4;
+    unsigned int INSEL     : 2; /* [25:24] Input selection (rw) */
+    unsigned int           : 2;
+    unsigned int CLKSELPHY : 1; /* [28:28] Input selection (rw) */
+    unsigned int           : 3;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_OSCCON_type;
+#define CLOCK_OSCCON (*(CLOCK_OSCCON_type*)(CCU_BASE + 0x100)) /* Crystal oscillator control register */
+
+/* Crystal oscillator control register */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int OSCVAL  : 7; /* [6:0] Reference input frequency value for crystal oscillator monitors (rw) */
+    unsigned int         : 1;
+    unsigned int SMONEN  : 1; /* [8:8] System-PLL crystal oscillator monitor enable (rw) */
+    unsigned int         : 3;
+    unsigned int SMONTST : 2; /* [13:12] System-PLL crystal oscillator monitor test (rw) */
+    unsigned int         : 10;
+    unsigned int PMONEN  : 1; /* [24:24] Peripheral-PLL crystal oscillator monitor enable (rw) */
+    unsigned int         : 3;
+    unsigned int PMONTST : 2; /* [29:28] Peripheral-PLL crystal oscillator monitor test (rw) */
+    unsigned int         : 2;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_OSCMON1_type;
+#define CLOCK_OSCMON1 (*(CLOCK_OSCMON1_type*)(CCU_BASE + 0x508)) /* Crystal oscillator monitor register */
+
+/* Crystal oscillator status register */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int SOWDS : 2; /* [1:0] Oscillator watchdog status for System-PLL (rh) */
+    unsigned int       : 14;
+    unsigned int POWDS : 2; /* [17:16] Oscillator watchdog status for Peripheral-PLL (rh) */
+    unsigned int       : 14;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_OSCSTAT_type;
+#define CLOCK_OSCSTAT (*(CLOCK_OSCSTAT_type*)(CCU_BASE + 0x50C)) /* Crystal oscillator status register */
+
+/* System-PLL configuration register 0 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int PLLPWR : 1; /* [0:0] System-PLL power mode (rw) */
+    unsigned int RESLD  : 1; /* [1:1] Restart DCO Lock Detection - RESLD (undef) */
+    unsigned int        : 1;
+    unsigned int MODEN  : 1; /* [3:3] Modulation enable (rw) */
+    unsigned int        : 4;
+    unsigned int NDIV   : 7; /* [14:8] N-divider value (rw) */
+    unsigned int        : 1;
+    unsigned int PDIV   : 3; /* [18:16] P-divider value (rw) */
+    unsigned int        : 13;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_SYSPLLCON0_type;
+#define CLOCK_SYSPLLCON0 (*(CLOCK_SYSPLLCON0_type*)(CCU_BASE + 0x300)) /* System-PLL configuration register 0 */
+
+/* System-PLL configuration register 1 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int K2DIV : 4; /* [3:0] K2-divider value - K2DIV (rw) */
+    unsigned int       : 28;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_SYSPLLCON1_type;
+#define CLOCK_SYSPLLCON1 (*(CLOCK_SYSPLLCON1_type*)(CCU_BASE + 0x304)) /* System-PLL configuration register 1 */
+
+/* System-PLL status register */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int PWRSTAT : 1; /* [0:0] System-PLL power mode status (rh) */
+    unsigned int PLLLOCK : 1; /* [1:1] System-PLL Lock status (rh) */
+    unsigned int         : 1;
+    unsigned int MODRUN  : 1; /* [3:3] System-PLL Modulation run (rh) */
+    unsigned int         : 28;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_SYSPLLSTAT_type;
+#define CLOCK_SYSPLLSTAT (*(CLOCK_SYSPLLSTAT_type*)(CCU_BASE + 0x30C)) /* System-PLL status register */
+
+/* Peripheral-PLL configuration register 0 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int PLLPWR : 1; /* [0:0] Peripheral-PLL power mode (rw) */
+    unsigned int RESLD  : 1; /* [1:1] Restart DCO lock detection (undef) */
+    unsigned int        : 6;
+    unsigned int NDIV   : 7; /* [14:8] N-divider value (rw) */
+    unsigned int        : 1;
+    unsigned int PDIV   : 3; /* [18:16] P-divider value (rw) */
+    unsigned int        : 13;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_PERPLLCON0_type;
+#define CLOCK_PERPLLCON0 (*(CLOCK_PERPLLCON0_type*)(CCU_BASE + 0x330)) /* Peripheral-PLL configuration register 0 */
+
+/* Peripheral-PLL configuration register 1 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int K2DIV    : 4; /* [3:0] K2-divider value (rw) */
+    unsigned int K2PREDIV : 2; /* [5:4] PLL2 pre-divider select (rw) */
+    unsigned int          : 2;
+    unsigned int K3DIV    : 3; /* [10:8] K3-divider value (rw) */
+    unsigned int          : 1;
+    unsigned int K3PREDIV : 2; /* [13:12] PLL2 pre-divider select (rw) */
+    unsigned int          : 2;
+    unsigned int K4DIV    : 3; /* [18:16] K4-divider value (rw) */
+    unsigned int          : 1;
+    unsigned int K4PREDIV : 2; /* [21:20] PLL3 pre-divider select (rw) */
+    unsigned int          : 10;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_PERPLLCON1_type;
+#define CLOCK_PERPLLCON1 (*(CLOCK_PERPLLCON1_type*)(CCU_BASE + 0x334)) /* Peripheral-PLL configuration register 1 */
+
+/* Peripheral-PLL status register */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int PWRSTAT : 1; /* [0:0] Peripheral-PLL power mode status (rh) */
+    unsigned int PLLLOCK : 1; /* [1:1] Peripheral-PLL lock status (rh) */
+    unsigned int         : 30;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_PERPLLSTAT_type;
+#define CLOCK_PERPLLSTAT (*(CLOCK_PERPLLSTAT_type*)(CCU_BASE + 0x338)) /* Peripheral-PLL status register */
+
+/* Global clock control register */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int CLKSELS : 2; /* [1:0] Selection for system clock source (rw) */
+    unsigned int         : 14;
+    unsigned int CLKSELP : 1; /* [16:16] Selection for peripheral clock sources (rw) */
+    unsigned int         : 15;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_CCUCON_type;
+#define CLOCK_CCUCON (*(CLOCK_CCUCON_type*)(CCU_BASE + 0x400)) /* Global clock control register */
+
+/* Global clock status register */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int CLKSELS : 2; /* [1:0] Selection for system clock source (rh) */
+    unsigned int         : 14;
+    unsigned int CLKSELP : 1; /* [16:16] Selection for peripheral clock sources (rh) */
+    unsigned int         : 14;
+    unsigned int LCK     : 1; /* [31:31] Register lock status (rh) */
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_CCUSTAT_type;
+#define CLOCK_CCUSTAT (*(CLOCK_CCUSTAT_type*)(CCU_BASE + 0x404)) /* Global clock status register */
+
+/* System CCU clock control register 0 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int SPBDIV : 4; /* [3:0] SPB divider reload value (rw) */
+    unsigned int CPBDIV : 4; /* [7:4] CPB divider reload value (rw) */
+    unsigned int TPBDIV : 4; /* [11:8] TPB divider reload value (rw) */
+    unsigned int SRIDIV : 4; /* [15:12] SRI divider reload value (rw) */
+    unsigned int FSIDIV : 4; /* [19:16] FSI divider reload value (rw) */
+    unsigned int        : 4;
+    unsigned int STMDIV : 4; /* [27:24] STM divider reload value (rw) */
+    unsigned int LPDIV  : 1; /* [28:28] Low Power divider reload value (rw) */
+    unsigned int        : 1;
+    unsigned int UP     : 1; /* [30:30] Update request (w) */
+    unsigned int        : 1;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_SYSCCUCON0_type;
+#define CLOCK_SYSCCUCON0 (*(CLOCK_SYSCCUCON0_type*)(CCU_BASE + 0x410)) /* System CCU clock control register 0 */
+
+/* System CCU clock control register 1 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int GETHDIV  : 4; /* [3:0] GETH divider reload value (rw) */
+    unsigned int          : 4;
+    unsigned int GTMDIV   : 4; /* [11:8] GTM divider reload value (rw) */
+    unsigned int EGTMDIV  : 4; /* [15:12] eGTM divider reload value (rw) */
+    unsigned int MCANHDIV : 4; /* [19:16] MCANH divider reload value (rw) */
+    unsigned int          : 10;
+    unsigned int UP       : 1; /* [30:30] Update request (w) */
+    unsigned int          : 1;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_SYSCCUCON1_type;
+#define CLOCK_SYSCCUCON1 (*(CLOCK_SYSCCUCON1_type*)(CCU_BASE + 0x414)) /* System CCU clock control register 1 */
+
+/* Peripheral CCU clock control register 1 */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int ASCLINFDIV    : 4; /* [3:0] ASCLIN fast divider reload value (rw) */
+    unsigned int               : 4;
+    unsigned int ASCLINSDIV    : 4; /* [11:8] ASCLIN slow divider reload value (rw) */
+    unsigned int CLKSELASCLINS : 2; /* [13:12] Clock selection for ASCLINS (rw) */
+    unsigned int               : 2;
+    unsigned int ADCPERON      : 1; /* [16:16] Power safe switch-off for ADC clock (rw) */
+    unsigned int               : 3;
+    unsigned int CLKSELADC     : 2; /* [21:20] Clock selection for ADC (rw) */
+    unsigned int               : 2;
+    unsigned int ERAYPERON     : 1; /* [24:24] Power safe switch-off for ERAY clock (rw) */
+    unsigned int XSPIPERON     : 1; /* [25:25] Power safe switch-off for xSPI clock (rw) */
+    unsigned int SDMMCPERON    : 1; /* [26:26] Power safe switch-off for SDMMC clock (rw) */
+    unsigned int HSCTPERON     : 1; /* [27:27] HSTC IVR power down (rw) */
+    unsigned int               : 4;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_PERCCUCON1_type;
+#define CLOCK_PERCCUCON1 (*(CLOCK_PERCCUCON1_type*)(CCU_BASE + 0x424)) /* Peripheral CCU clock control register 1 */
+
+/* External clock control register */
+typedef volatile union
+{
+  struct
+  {
+    unsigned int EN0   : 1; /* [0:0] Output enable for EXTCLK0 (rw) */
+    unsigned int       : 1;
+    unsigned int SEL0  : 5; /* [6:2] Clock select for EXTCLK0 (rw) */
+    unsigned int       : 9;
+    unsigned int EN1   : 1; /* [16:16] Output enable for EXTCLK0 (rw) */
+    unsigned int NSEL1 : 1; /* [17:17] Negation selection for EXTCLK1 (rw) */
+    unsigned int SEL1  : 5; /* [22:18] External clock select for EXTCLK1 (rw) */
+    unsigned int       : 1;
+    unsigned int DIV1  : 7; /* [30:24] Clock divider for EXTCLK1 (rw) */
+    unsigned int       : 1;
+  } B;
+  int I;
+  unsigned int U;
+} CLOCK_EXTCON_type;
+#define CLOCK_EXTCON (*(CLOCK_EXTCON_type*)(CCU_BASE + 0x430)) /* External clock control register */
+
+#endif // #ifndef TC49X_SFR_FILE

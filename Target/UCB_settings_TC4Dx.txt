@@ -1,0 +1,121 @@
+/*
+################################################################################
+#                                                                              #
+#    ETK driver example                          |   ETAS GmbH                 #
+#                                                |   Stuttgart Feuerbach       #
+#    For Demonstration Purpose Only              |   All rights reserved       #
+#    sample driver implementation                |   Alle Rechte vorbehalten   #
+#                                                                              #
+################################################################################
+*/
+
+/******************************************************************************/
+/* Copyright and Legal Disclaimer:                                            */
+/* This Code example was provided by ETAS GmbH, Stuttgart                     */
+/*                                                                            */
+/* ETAS will not be held reliable for any usage of this code,                 */
+/* this code is provided as example code only, and not tested and released    */
+/* for production code.                                                       */
+/* ETAS will not guarantee any functional part of this code in any            */
+/* environment together with any ETAS tools. ETAS will not guarantee that     */
+/* this code works together with any future versions of ETAS tools.           */
+/*                                                                            */
+/* ETAS will not guarantee that this code is free of rights of third parties. */
+/*                                                                            */
+/* You are hereby granted the right to use his code as a example for your own */
+/* ECU implementation together with ETAS Tools. No licenses are granted by    */
+/* implication or otherwise under any patents or trademarks of ETAS GmbH.     */
+/* This software is provided on an "AS IS" basis and without warranty.        */
+/*                                                                            */
+/* You are not allowed to give these code to third parties without            */
+/* the written permission of ETAS GmbH.                                       */
+/*                                                                            */
+/* To the maximum extent permitted by applicable law,                         */
+/* ETAS GmbH DISCLAIMS ALL WARRANTIES WHETHER EXPRESS OR IMPLIED,             */
+/* INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A           */
+/* PARTICULAR PURPOSE AND ANY WARRANTY AGAINST INFRINGEMENT WITH REGARD       */
+/* TO THE SOFTWARE (INCLUDING ANY MODIFIED VERSIONS THEREOF)                  */
+/* AND ANY ACCOMPANYING WRITTEN MATERIALS.                                    */
+/*                                                                            */
+/*                                                                            */
+/* To the maximum extent permitted by applicable law,                         */
+/* IN NO EVENT SHALL ETAS BE LIABLE FOR ANY                                   */
+/* DAMAGES WHATSOEVER (INCLUDING WITHOUT LIMITATION, DAMAGES FOR LOSS OF      */
+/* BUSINESS PROFITS, BUSINESS INTERRUPTION, LOSS OF BUSINESS INFORMATION,     */
+/* OR OTHER PECUNIARY LOSS)                                                   */
+/* ARISING OF THE USE OR INABILITY TO USE THE SOFTWARE.                       */
+/*                                                                            */
+/*                                                                            */
+/* ETAS GmbH assumes no responsibility for the maintenance                    */
+/* and support of this software                                               */
+/*                                                                            */
+/*                                                                            */
+/*  COPYRIGHT (c) ETAS GmbH 2023                                              */
+/*  All Rights Reserved                                                       */
+/******************************************************************************/
+
+
+UCB calculations for TC4Dx.
+The CRC checksum calculations were done with https://crccalc.com/
+
+
+################################################################################################
+UCB0_BMHD0, RTC
+    .sal               = 0xAE404800, // System Address of this location
+    .bmIDIndex         = 0xB359000F, // ID + internal start from flash, Bit 0 reserved (=1)
+    .startAddr         = 0xA0000020, // Internal start from flash address
+    .crcHead           = 0xAB562CEE, // the header CRC
+
+AE404800 B359000F A0000020
+
+################################################################################################
+UCB0_BMHD1, RTC (not used)
+    .sal               = 0xAE405000, // System Address of this location
+    .bmIDIndex         = 0xB359000F, // ID + internal start from flash, Bit 0 reserved (=1)
+    .startAddr         = 0xA0000020, // Internal start from flash address
+    .crcHead           = 0x9F2FEDF2, // the header CRC
+
+AE405000 B359000F A0000020
+
+################################################################################################
+UCB1_BMHD0, CS
+    .sal               = 0xAEC01800, // System Address of this location
+    .bmIDIndex         = 0xB359000F, // ID + internal start from flash, Bit 0 reserved (=1)
+    .startAddr         = 0xA4000000, // Internal start from flash address
+    .crcHead           = 0xD1AF28A6, // the header CRC
+
+AEC01800 B359000F A4000000
+
+################################################################################################
+UCB_RTC_USERCFG_ORIG (not used)
+    .rtcUserCfg     = 0xAE408800U,
+    .reserved0      = 0x0U,
+    .reserved1      = 0x0U,
+    .smmEsr0CntCtrl = 0x0U,
+    .pmsPadEsr2Con  = 0x0U,
+    .ramInit        = 0x0U,
+    .lbistExe       = 0x0U,
+    .hostRamInit    = 0x2U,
+    .swapEna        = 0x5U,
+    .addrEna        = 0x0U,
+    .crcRtcUserCfg  = 0x0CC8B380U,
+
+AE408800 00000000 00000000 00000000 00000000 00000000 00000000 00000002 00000005 00000000
+
+################################################################################################
+UCB_RTC_USERCFG_COPY (not used)
+    .rtcUserCfg     = 0xAE409000U,
+    .reserved0      = 0x0U,
+    .reserved1      = 0x0U,
+    .smmEsr0CntCtrl = 0x0U,
+    .pmsPadEsr2Con  = 0x0U,
+    .ramInit        = 0x0U,
+    .lbistExe       = 0x0U,
+    .hostRamInit    = 0x2U,
+    .swapEna        = 0x5U,
+    .addrEna        = 0x0U,
+    .crcRtcUserCfg  = 0x0E1BBA7BU,
+
+AE409000 00000000 00000000 00000000 00000000 00000000 00000000 00000002 00000005 00000000
+
+

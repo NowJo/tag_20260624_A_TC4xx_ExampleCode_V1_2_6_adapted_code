@@ -1,0 +1,1 @@
+These linker files are made for the HighTec compiler.
